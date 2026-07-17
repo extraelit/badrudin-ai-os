@@ -1,1 +1,3 @@
-#MASTYR SPISIFICATYON
+# MASTYR SPISIFICATYON 
+# PROPIS 
+этот документ устанавливает базовые требования и стандарты для проекта 
