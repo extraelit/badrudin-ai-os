@@ -16,6 +16,7 @@ from app.schemas.auth import (
     MFAVerifyRequest,
     TokenResponse,
 )
+from app.services.audit import record_event
 from app.services.auth import AuthError, authenticate, verify_totp
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -31,6 +32,13 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)
         ) from exc
+    record_event(
+        db,
+        actor_type="user",
+        action="auth.login",
+        actor_user_id=user.id,
+        organization_id=None,
+    )
     token = create_access_token(subject=str(user.id), extra={"email": user.email})
     return TokenResponse(access_token=token)
 
