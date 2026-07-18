@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 
 from app.core.context import get_request_id
+from app.core.secrets import SecretMaskingFilter
 
 
 class RequestIDFilter(logging.Filter):
@@ -21,6 +22,7 @@ class RequestIDFilter(logging.Filter):
 def configure_logging(level: str = "INFO") -> None:
     handler = logging.StreamHandler()
     handler.addFilter(RequestIDFilter())
+    handler.addFilter(SecretMaskingFilter())
     handler.setFormatter(
         logging.Formatter(
             "%(asctime)s %(levelname)s [%(name)s] [req=%(request_id)s] %(message)s"
