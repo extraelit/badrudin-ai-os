@@ -11,8 +11,11 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from datetime import UTC, datetime
+
 from app.models import (
     Permission,
+    ProjectAccess,
     ProjectMember,
     Role,
     RolePermission,
@@ -61,14 +64,38 @@ def accessible_project_ids(session: Session, user: User) -> set[uuid.UUID] | Non
     """
     if SUPER_ROLE in get_role_codes(session, user.id):
         return None
-    if user.employee_id is None:
-        return set()
-    rows = session.execute(
-        select(ProjectMember.project_id).where(
-            ProjectMember.employee_id == user.employee_id
-        )
-    ).all()
-    return {r[0] for r in rows}
+    ids: set[uuid.UUID] = set()
+    if user.employee_id is not None:
+        rows = session.execute(
+            select(ProjectMember.project_id).where(
+                ProjectMember.employee_id == user.employee_id
+            )
+        ).all()
+        ids.update(r[0] for r in rows)
+    # временный/дополнительный доступ с проверкой срока действия (T-1.C5)
+    ids.update(_active_grant_project_ids(session, user.id))
+    return ids
+
+
+def _as_aware(value: datetime | None) -> datetime | None:
+    if value is not None and value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value
+
+
+def _active_grant_project_ids(
+    session: Session, user_id: uuid.UUID
+) -> set[uuid.UUID]:
+    now = datetime.now(UTC)
+    result: set[uuid.UUID] = set()
+    for grant in session.execute(
+        select(ProjectAccess).where(ProjectAccess.user_id == user_id)
+    ).scalars():
+        vf = _as_aware(grant.valid_from)
+        vu = _as_aware(grant.valid_until)
+        if (vf is None or vf <= now) and (vu is None or vu >= now):
+            result.add(grant.project_id)
+    return result
 
 
 def can_access_project(

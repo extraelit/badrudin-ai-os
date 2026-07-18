@@ -12,6 +12,7 @@ from app.models.organization import (
     Organization,
     Position,
 )
+from app.models.access_grant import ProjectAccess
 from app.models.agent import AgentRun, AIAgent
 from app.models.audit import AuditEvent
 from app.models.content import (
@@ -67,4 +68,5 @@ __all__ = [
     "AIAgent",
     "AgentRun",
     "AuditEvent",
+    "ProjectAccess",
 ]
