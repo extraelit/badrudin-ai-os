@@ -24,6 +24,19 @@ class Settings(BaseSettings):
         "postgresql+psycopg://badrudin:change-me@localhost:5432/badrudin"
     )
 
+    # Аутентификация / JWT. Секрет задаётся через окружение (не хранится в коде).
+    jwt_secret: str = "change-me"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
+    refresh_token_expire_days: int = 14
+    max_failed_logins: int = 5
+    lockout_minutes: int = 15
+    # Роли, для которых обязательна MFA (ACCESS_CONTROL.md раздел 19)
+    mfa_required_roles: str = (
+        "system_owner,general_director,executive_director,accountant,"
+        "finance_director,administrator"
+    )
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
