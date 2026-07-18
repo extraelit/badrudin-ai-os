@@ -6,5 +6,19 @@
 """
 
 from app.db.base import Base
+from app.models.organization import (
+    Department,
+    Employee,
+    Organization,
+    Position,
+)
+from app.models.user import User
 
-__all__ = ["Base"]
+__all__ = [
+    "Base",
+    "Organization",
+    "Department",
+    "Position",
+    "Employee",
+    "User",
+]
