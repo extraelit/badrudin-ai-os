@@ -22,3 +22,22 @@ def health() -> dict[str, str | bool]:
         "environment": settings.app_env,
         "version": __version__,
     }
+
+
+@router.get("/health/status")
+def integrations_status() -> dict[str, object]:
+    """Сводка о настроенных интеграциях (T-1.G3).
+
+    Показывает, какие компоненты сконфигурированы (не выполняет живую проверку —
+    активный мониторинг доступности реализуется в T-1.J3).
+    """
+    settings = get_settings()
+    return {
+        "status": "ok",
+        "components": {
+            "database": bool(settings.database_url),
+            "redis": bool(settings.redis_url),
+            "object_storage": bool(settings.minio_endpoint),
+            "broker": bool(settings.celery_broker_url),
+        },
+    }

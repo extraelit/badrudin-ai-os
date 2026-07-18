@@ -12,12 +12,14 @@ from app import __version__
 from app.api import auth, health
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
+from app.core.logging import configure_logging
 from app.core.middleware import RequestIDMiddleware
 
 
 def create_app() -> FastAPI:
     """Создаёт и настраивает экземпляр приложения FastAPI."""
     settings = get_settings()
+    configure_logging()
     app = FastAPI(
         title=settings.app_name,
         version=__version__,
