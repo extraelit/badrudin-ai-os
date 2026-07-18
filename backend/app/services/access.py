@@ -31,3 +31,15 @@ def get_permission_codes(session: Session, user_id: uuid.UUID) -> set[str]:
         .where(UserRole.user_id == user_id)
     ).all()
     return {r[0] for r in rows}
+
+
+# роль полного доступа (обходит проверку конкретного разрешения)
+SUPER_ROLE = "system_owner"
+
+
+def has_permission(session: Session, user_id: uuid.UUID, code: str) -> bool:
+    """Проверяет наличие разрешения у пользователя (RBAC, серверная проверка)."""
+    roles = get_role_codes(session, user_id)
+    if SUPER_ROLE in roles:
+        return True
+    return code in get_permission_codes(session, user_id)

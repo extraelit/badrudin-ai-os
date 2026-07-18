@@ -8,10 +8,13 @@ import jwt
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 
+from collections.abc import Callable
+
 from app.core import token_store
 from app.core.security import decode_token
 from app.db.session import get_db
 from app.models import User
+from app.services.access import has_permission
 
 _UNAUTHORIZED = HTTPException(
     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -39,3 +42,24 @@ def get_current_user(
     if user is None or user.deleted_at is not None or user.status != "active":
         raise _UNAUTHORIZED
     return user
+
+
+def require_permission(code: str) -> Callable[..., User]:
+    """Фабрика зависимостей: требует наличие разрешения (RBAC, серверная проверка).
+
+    Проверка выполняется на сервере, а не только в интерфейсе
+    (ACCESS_CONTROL.md разделы 30, 32).
+    """
+
+    def _dep(
+        current: User = Depends(get_current_user),
+        db: Session = Depends(get_db),
+    ) -> User:
+        if not has_permission(db, current.id, code):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Недостаточно прав для выполнения действия",
+            )
+        return current
+
+    return _dep
