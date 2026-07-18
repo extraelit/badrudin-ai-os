@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import uuid
+from datetime import timedelta
 from functools import lru_cache
 
 from minio import Minio
@@ -53,6 +54,23 @@ def build_object_key(original_name: str, prefix: str = "files") -> str:
     suffix = original_name.rsplit(".", 1)[-1].lower() if "." in original_name else ""
     name = uuid.uuid4().hex
     return f"{prefix}/{name}.{suffix}" if suffix else f"{prefix}/{name}"
+
+
+def presigned_get_url(
+    object_key: str, expires_minutes: int = 15, client: Minio | None = None
+) -> str:
+    """Временная подписанная ссылка на скачивание (T-1.E2).
+
+    Подпись вычисляется локально; ссылка имеет срок действия и не передаётся
+    публично (ACCESS_CONTROL.md раздел 25).
+    """
+    settings = get_settings()
+    mc = client or get_minio_client()
+    return mc.presigned_get_object(
+        settings.minio_bucket,
+        object_key,
+        expires=timedelta(minutes=expires_minutes),
+    )
 
 
 def register_file(
