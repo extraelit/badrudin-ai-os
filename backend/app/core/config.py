@@ -19,6 +19,23 @@ class Settings(BaseSettings):
     backend_host: str = "0.0.0.0"
     backend_port: int = 8000
 
+    # Объектное хранилище MinIO (D-008)
+    minio_endpoint: str = "minio:9000"
+    minio_access_key: str = "change-me"
+    minio_secret_key: str = "change-me"
+    minio_bucket: str = "badrudin-files"
+    minio_region: str = "ru-central"
+    minio_use_ssl: bool = False
+    # ограничения загрузок (T-1.E2)
+    max_upload_bytes: int = 104857600  # 100 МБ
+    allowed_upload_mime: str = (
+        "image/jpeg,image/png,image/heic,image/webp,video/mp4,video/quicktime,"
+        "application/pdf,application/msword,"
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document,"
+        "application/vnd.ms-excel,"
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
     # Подключение к базе данных (D-004: PostgreSQL). Значение берётся из окружения.
     database_url: str = (
         "postgresql+psycopg://badrudin:change-me@localhost:5432/badrudin"
