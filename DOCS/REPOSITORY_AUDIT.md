@@ -14,7 +14,7 @@
 Документ фиксирует фактическое состояние репозитория на начало Этапа 0: карту
 файлов, перечень существующих и отсутствующих документов, обнаруженные
 противоречия, выполненные исправления и оценку готовности к разработке. Аудит
-выполнен в соответствии с требованиями `DOCS/CLAUD.md` (разделы 7 и 30).
+выполнен в соответствии с требованиями `DOCS/CLAUDE.md` (разделы 7 и 30).
 
 Аудит не изменяет бизнес-требования. Принятые решения зафиксированы в
 `DOCS/DECISIONS.md`, открытые вопросы — в `DOCS/CONTEXT_GAPS.md`.
@@ -31,14 +31,14 @@ badrudin-ai-os/
     ├── AGENTS.md
     ├── API.md
     ├── ARCHITECTURE.md
-    ├── CLAUD.md
+    ├── CLAUDE.md
     ├── CONTEXT_GAPS.md          (создан на Этапе 0)
     ├── CRM_CORE.md
     ├── DATABASE.md
     ├── DECISIONS.md             (создан на Этапе 0)
     ├── DEPARTMENTS.md
     ├── INTEGRATIONS.md
-    ├── MASTYR_SPISIFICATYON.MD
+    ├── MASTER_SPECIFICATION.md
     ├── MEDIA_DEPARTMENT.md
     ├── MOBILE_FORMS.md
     ├── REPOSITORY_AUDIT.md      (создан на Этапе 0)
@@ -48,7 +48,7 @@ badrudin-ai-os/
 
 Исходный код приложения (backend, frontend, миграции, тесты, конфигурации,
 инфраструктура) на момент аудита отсутствует. Это соответствует принципу
-Documentation First (`DOCS/CLAUD.md`, раздел 8).
+Documentation First (`DOCS/CLAUDE.md`, раздел 8).
 
 ---
 
@@ -58,8 +58,8 @@ Documentation First (`DOCS/CLAUD.md`, раздел 8).
 |---|---|---|
 | `README.md` | корень | Точка входа, назначение и статус проекта |
 | `ACCESS_CONTROL.md` | корень | Доступ, роли, согласования, шкала риска R0–R4, аудит |
-| `MASTYR_SPISIFICATYON.MD` | `DOCS/` | Мастер-спецификация системы (заголовок «MASTER SPECIFICATION») |
-| `CLAUD.md` | `DOCS/` | Постоянная инструкция Claude Code (заголовок «CLAUDE.md») |
+| `MASTER_SPECIFICATION.md` | `DOCS/` | Мастер-спецификация системы (заголовок «MASTER SPECIFICATION») |
+| `CLAUDE.md` | `DOCS/` | Постоянная инструкция Claude Code (заголовок «CLAUDE.md») |
 | `ARCHITECTURE.md` | `DOCS/` | Целевая архитектура системы |
 | `DATABASE.md` | `DOCS/` | Модель данных, подотчётные средства, склад и закупки |
 | `AGENTS.md` | `DOCS/` | Реестр и регламент ИИ-агентов |
@@ -80,11 +80,11 @@ Documentation First (`DOCS/CLAUD.md`, раздел 8).
 отсутствуют. Их отсутствие зафиксировано как пробел контекста, а не как ошибка:
 
 - `DOCS/SECURITY.md` / `SECURITY_POLICY.md` — подробная политика безопасности
-  (упоминается в `DOCS/ARCHITECTURE.md` разделы 23, 15 и `DOCS/CLAUD.md`);
+  (упоминается в `DOCS/ARCHITECTURE.md` разделы 23, 15 и `DOCS/CLAUDE.md`);
 - `DOCS/IMPLEMENTATION_PLAN.md` — план реализации по этапам
-  (рекомендован в `DOCS/CLAUD.md` разделы 7, 30);
+  (рекомендован в `DOCS/CLAUDE.md` разделы 7, 30);
 - `DOCS/TASKS.md` — перечень задач первой версии
-  (упоминается в `DOCS/CLAUD.md`, `DOCS/ARCHITECTURE.md`);
+  (упоминается в `DOCS/CLAUDE.md`, `DOCS/ARCHITECTURE.md`);
 - `DOCS/DEPLOYMENT.md`, `DOCS/USER_GUIDE.md` — упомянуты в `DOCS/ARCHITECTURE.md`
   раздел 23;
 - каталог `DOCS/adr/` — архитектурные решения (ADR), пока не создан;
@@ -102,9 +102,12 @@ Documentation First (`DOCS/CLAUD.md`, раздел 8).
 
 **П-1. Несовпадение имён файлов и ссылок.** Ссылки вели на
 `MASTER_SPECIFICATION.md`, `CLAUDE.md` и каталог `docs/`, тогда как фактические
-объекты — `DOCS/MASTYR_SPISIFICATYON.MD`, `DOCS/CLAUD.md` и каталог `DOCS/`.
-Прозаические ссылки приведены к реальным именам и регистру. См.
-`DOCS/DECISIONS.md`, решение D-006.
+файлы назывались `DOCS/MASTYR_SPISIFICATYON.MD`, `DOCS/CLAUD.md` и лежали в
+каталоге `DOCS/`. Сначала ссылки были приведены к тогдашним реальным именам
+(D-006), затем файлы переименованы в канонические имена
+`DOCS/MASTER_SPECIFICATION.md` и `DOCS/CLAUDE.md` через `git mv`, а ссылки и
+заголовки обновлены. См. `DOCS/DECISIONS.md`, решения D-006 (пересмотрено) и
+D-016.
 
 **П-2. Списки и таблицы не отображались как Markdown.** В файлах
 `ACCESS_CONTROL.md`, `DOCS/INTEGRATIONS.md`, `DOCS/WORKFLOWS.md`,
@@ -121,12 +124,12 @@ Documentation First (`DOCS/CLAUD.md`, раздел 8).
 Критический». Единой принята шкала `R0–R4`. См. `DOCS/DECISIONS.md`, решение
 D-001. Приведение матрицы в `ARCHITECTURE.md` — отдельная задача.
 
-**П-4. Разные описания MVP.** Состав MVP отличается в `DOCS/CLAUD.md` (раздел 31),
+**П-4. Разные описания MVP.** Состав MVP отличается в `DOCS/CLAUDE.md` (раздел 31),
 `DOCS/ARCHITECTURE.md` (раздел 19), `DOCS/DATABASE.md` (раздел 28) и
-`DOCS/ROADMAP.md` (раздел 24). Единым источником MVP принят `DOCS/CLAUD.md`,
+`DOCS/ROADMAP.md` (раздел 24). Единым источником MVP принят `DOCS/CLAUDE.md`,
 остальные синхронизируются с ним. См. `DOCS/DECISIONS.md`, решение D-003.
 
-**П-5. Статус технологического стека.** `DOCS/CLAUD.md` (разделы 11, 30) требует
+**П-5. Статус технологического стека.** `DOCS/CLAUDE.md` (разделы 11, 30) требует
 не фиксировать стек до утверждения, `DOCS/ARCHITECTURE.md` (раздел 5) уже
 указывает предпочтительные технологии. Стек MVP утверждён:
 FastAPI, PostgreSQL, Next.js, n8n. См. `DOCS/DECISIONS.md`, решение D-004.
@@ -136,11 +139,13 @@ FastAPI, PostgreSQL, Next.js, n8n. См. `DOCS/DECISIONS.md`, решение D-0
 версия — мобильные (веб-)формы, без отдельного нативного приложения. См.
 `DOCS/DECISIONS.md`, решение D-005.
 
-### 5.3. Требует решения владельца (не исправлялось)
+**П-7. Переименование файлов документации.** Файлы
+`DOCS/MASTYR_SPISIFICATYON.MD` и `DOCS/CLAUD.md` имели опечатки в именах при
+заголовках «MASTER SPECIFICATION» и «CLAUDE.md». Переименованы в канонические
+имена `DOCS/MASTER_SPECIFICATION.md` и `DOCS/CLAUDE.md`. См. `DOCS/DECISIONS.md`,
+решение D-016.
 
-**П-7. Возможное переименование файлов.** `MASTYR_SPISIFICATYON.MD` и `CLAUD.md`
-содержат опечатки в именах; их заголовки — «MASTER SPECIFICATION» и «CLAUDE.md».
-Переименование не выполнялось. См. `DOCS/CONTEXT_GAPS.md`.
+### 5.3. Требует решения владельца (не исправлялось)
 
 **П-8. Внутренняя несогласованность имён сущностей в `DATABASE.md`.** Основная
 модель использует `stock_movements`, `audit_events`, `equipment` и моделирует
@@ -150,15 +155,19 @@ FastAPI, PostgreSQL, Next.js, n8n. См. `DOCS/DECISIONS.md`, решение D-0
 `DOCS/CONTEXT_GAPS.md`. Как изменение модели данных не выполнялось на Этапе 0.
 
 **П-9. Каталог `docs/` в структурных диаграммах.** Блоки «рекомендуемая структура
-репозитория» (`DOCS/ARCHITECTURE.md` раздел 15, `DOCS/MASTYR_SPISIFICATYON.MD`)
-показывают `docs/` в нижнем регистре и каноничные имена файлов. Оставлены как
-целевая рекомендация; связано с открытым вопросом о переименовании (П-7).
+репозитория» (`DOCS/ARCHITECTURE.md` раздел 15, `DOCS/MASTER_SPECIFICATION.md`)
+показывают `docs/` в нижнем регистре. Оставлены как целевая рекомендация
+структуры; на фактическую нормализацию ссылок и переименование файлов (П-1, П-7)
+не влияют.
 
 ---
 
 ## 6. Выполненные изменения Этапа 0
 
-- Нормализованы внутренние ссылки в 8 документах (решение D-006).
+- Нормализованы внутренние ссылки в документах (решение D-006).
+- Файлы переименованы в канонические имена `git mv`: `MASTYR_SPISIFICATYON.MD` →
+  `MASTER_SPECIFICATION.md`, `CLAUD.md` → `CLAUDE.md`; ссылки и заголовки
+  обновлены (решение D-016).
 - Исправлена Markdown-разметка списков в 4 документах (П-2).
 - Создан `DOCS/REPOSITORY_AUDIT.md` (настоящий документ).
 - Создан `DOCS/CONTEXT_GAPS.md`.

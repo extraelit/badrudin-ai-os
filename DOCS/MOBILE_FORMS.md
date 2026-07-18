@@ -8,7 +8,7 @@
 
 Документ связан с:
 
-- `MASTYR_SPISIFICATYON.MD`;
+- `MASTER_SPECIFICATION.md`;
 - `AGENTS.md`;
 - `ARCHITECTURE.md`;
 - `DATABASE.md`;
@@ -18,7 +18,7 @@
 - `DEPARTMENTS.md`;
 - `ROADMAP.md`;
 - `MEDIA_DEPARTMENT.md`;
-- `CLAUD.md`.
+- `CLAUDE.md`.
 
 ## 2. Главная цель мобильного модуля
 

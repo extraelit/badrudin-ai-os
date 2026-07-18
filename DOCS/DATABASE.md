@@ -3,7 +3,7 @@
 
 **Версия:** 0.1  
 **Статус:** базовая модель данных для начала разработки  
-**Связанные документы:** `MASTYR_SPISIFICATYON.MD`, `AGENTS.md`, `ARCHITECTURE.md`  
+**Связанные документы:** `MASTER_SPECIFICATION.md`, `AGENTS.md`, `ARCHITECTURE.md`  
 **Основная СУБД:** PostgreSQL  
 **Назначение:** руководство для Claude Code, разработчиков, интеграторов и владельца системы
 

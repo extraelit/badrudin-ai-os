@@ -613,7 +613,7 @@ GET    /dashboards/executive
 
 ## 35. Связанные документы
 
-- `MASTYR_SPISIFICATYON.MD` — общая цель и требования системы.
+- `MASTER_SPECIFICATION.md` — общая цель и требования системы.
 - `AGENTS.md` — роли и правила ИИ-агентов.
 - `ARCHITECTURE.md` — техническая архитектура.
 - `DATABASE.md` — модель данных.
