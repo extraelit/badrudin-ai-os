@@ -19,6 +19,14 @@ from app.models.project import (
     Site,
 )
 from app.models.rbac import Permission, Role, RolePermission, UserRole
+from app.models.task import (
+    Approval,
+    ApprovalStep,
+    Task,
+    TaskAssignment,
+    TaskEvidence,
+    TaskUpdate,
+)
 from app.models.user import User
 
 __all__ = [
@@ -36,4 +44,10 @@ __all__ = [
     "Site",
     "ProjectMember",
     "ProjectLocation",
+    "Task",
+    "TaskAssignment",
+    "TaskUpdate",
+    "TaskEvidence",
+    "Approval",
+    "ApprovalStep",
 ]
