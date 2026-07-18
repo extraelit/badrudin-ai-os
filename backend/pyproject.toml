@@ -34,3 +34,7 @@ include = ["app*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+    "integration: тесты, требующие внешних сервисов (БД/Redis/MinIO)",
+]
