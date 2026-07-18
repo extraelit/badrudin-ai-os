@@ -1,0 +1,17 @@
+# Конфигурация мониторинга Prometheus (T-1.J3).
+# Базовый сбор метрик доступности. Экспорт метрик приложения (/metrics) и
+# расширенные алерты добавляются по мере готовности эндпоинтов приложения.
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Метрики backend (эндпоинт /metrics подключается при появлении экспортёра)
+  - job_name: backend
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["backend:8000"]
