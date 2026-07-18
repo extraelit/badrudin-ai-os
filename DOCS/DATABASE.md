@@ -3318,3 +3318,1374 @@ amount_issued + amount_reimbursable = amount_spent_confirmed + amount_returned
 
 
 Система должна ускорять работу организации, но не должна скрывать происхождение данных, автора решения или историю изменения записи.
+## 33. Модуль складского учёта, закупок, техники и инструмента
+
+### 33.1. Назначение модуля
+
+Модуль предназначен для сквозного учёта материальных ценностей, закупок, поставок, складских остатков, перемещений между объектами, выдачи материалов, списаний, возвратов, инструмента, техники, оборудования и связанных финансовых обязательств.
+
+Модуль должен обеспечивать:
+
+- достоверный остаток по каждому складу и объекту;
+- привязку материалов к проекту, объекту, задаче и смете;
+- контроль заявок от прорабов и производственных подразделений;
+- согласование закупок по установленным лимитам;
+- сравнение поставщиков, цен, сроков и условий оплаты;
+- фиксацию поступления, выдачи, возврата, перемещения и списания;
+- контроль техники, инструмента, ремонтов, технического обслуживания и ответственных лиц;
+- работу через CRM и мобильную форму прораба;
+- автоматическое выявление дефицита, перерасхода, просрочек и необоснованных закупок;
+- сохранение полного журнала действий и подтверждающих документов.
+
+### 33.2. Базовые принципы учёта
+
+1. Каждая материальная ценность должна иметь уникальный идентификатор либо относиться к номенклатурной позиции.
+2. Каждое движение должно быть оформлено отдельной операцией с датой, ответственным лицом и основанием.
+3. Материал не может считаться выданным, перемещённым или списанным без подтверждающего документа.
+4. Остаток рассчитывается на основании подтверждённых операций, а не вручную введённого итогового числа.
+5. Заявка, заказ поставщику, поступление, выдача и списание должны быть связаны между собой.
+6. Закупка сверх утверждённого лимита требует дополнительного согласования.
+7. Замена материала на аналог допускается только после технического и финансового согласования.
+8. Все изменения количества, цены, склада, объекта или ответственного лица фиксируются в журнале аудита.
+9. Удаление подтверждённых операций запрещается. Исправление выполняется через сторнирующую или корректирующую операцию.
+10. Система должна поддерживать раздельный учёт собственных, арендованных, переданных заказчиком и временно хранимых ценностей.
+
+### 33.3. Основные справочники
+
+#### 33.3.1. Номенклатура материалов
+
+Сущность: `inventory_items`
+
+Обязательные поля:
+
+- `id` - уникальный идентификатор;
+- `item_code` - внутренний код;
+- `name` - наименование;
+- `category_id` - категория;
+- `item_type` - материал, оборудование, инструмент, запасная часть, топливо, СИЗ, расходный материал;
+- `unit_id` - единица измерения;
+- `manufacturer` - производитель;
+- `model` - марка или модель;
+- `technical_specification` - технические характеристики;
+- `project_specification_reference` - ссылка на проектную спецификацию;
+- `certificate_required` - требуется ли сертификат;
+- `shelf_life_days` - срок годности при наличии;
+- `storage_conditions` - условия хранения;
+- `min_stock_level` - минимальный остаток;
+- `reorder_level` - уровень автоматического формирования заявки;
+- `is_serialized` - ведётся ли серийный учёт;
+- `is_batch_tracked` - ведётся ли партийный учёт;
+- `is_active` - активность позиции;
+- `created_at`;
+- `updated_at`.
+
+#### 33.3.2. Категории номенклатуры
+
+Сущность: `inventory_categories`
+
+Поля:
+
+- `id`;
+- `parent_id`;
+- `name`;
+- `description`;
+- `accounting_group`;
+- `responsible_department_id`;
+- `approval_level`;
+- `is_active`.
+
+#### 33.3.3. Единицы измерения
+
+Сущность: `measurement_units`
+
+Поля:
+
+- `id`;
+- `code`;
+- `name`;
+- `short_name`;
+- `base_unit_id`;
+- `conversion_factor`;
+- `is_active`.
+
+#### 33.3.4. Склады и места хранения
+
+Сущность: `warehouses`
+
+Поля:
+
+- `id`;
+- `name`;
+- `warehouse_type` - центральный, объектовый, временный, контейнер, открытая площадка, склад ГСМ;
+- `project_id`;
+- `site_id`;
+- `address`;
+- `latitude`;
+- `longitude`;
+- `responsible_employee_id`;
+- `access_rules`;
+- `storage_conditions`;
+- `is_active`;
+- `created_at`;
+- `updated_at`.
+
+Сущность: `warehouse_locations`
+
+Поля:
+
+- `id`;
+- `warehouse_id`;
+- `zone`;
+- `rack`;
+- `shelf`;
+- `bin`;
+- `description`;
+- `is_active`.
+
+### 33.4. Остатки и движения материалов
+
+#### 33.4.1. Складские остатки
+
+Сущность: `inventory_balances`
+
+Поля:
+
+- `id`;
+- `warehouse_id`;
+- `location_id`;
+- `item_id`;
+- `batch_id`;
+- `serial_number_id`;
+- `quantity_on_hand`;
+- `quantity_reserved`;
+- `quantity_available`;
+- `average_unit_cost`;
+- `total_cost`;
+- `last_movement_at`;
+- `updated_at`.
+
+Поле `quantity_available` рассчитывается автоматически:
+
+```text
+quantity_available = quantity_on_hand - quantity_reserved
+```
+
+Ручное редактирование рассчитанного остатка запрещается.
+
+#### 33.4.2. Движения материалов
+
+Сущность: `inventory_transactions`
+
+Поля:
+
+- `id`;
+- `transaction_number`;
+- `transaction_type` - поступление, выдача, возврат, перемещение, списание, корректировка, инвентаризация, резервирование, снятие резерва;
+- `transaction_date`;
+- `item_id`;
+- `batch_id`;
+- `serial_number_id`;
+- `quantity`;
+- `unit_cost`;
+- `total_cost`;
+- `source_warehouse_id`;
+- `source_location_id`;
+- `destination_warehouse_id`;
+- `destination_location_id`;
+- `project_id`;
+- `site_id`;
+- `task_id`;
+- `work_item_id`;
+- `estimate_position_id`;
+- `responsible_employee_id`;
+- `recipient_employee_id`;
+- `basis_document_id`;
+- `status`;
+- `approved_by`;
+- `approved_at`;
+- `created_by`;
+- `created_at`;
+- `posted_at`;
+- `reversal_transaction_id`;
+- `comment`.
+
+Статусы операции:
+
+- `draft`;
+- `pending_approval`;
+- `approved`;
+- `posted`;
+- `partially_completed`;
+- `rejected`;
+- `reversed`;
+- `cancelled_before_posting`.
+
+### 33.5. Партии, серийные номера и сертификаты
+
+Сущность: `inventory_batches`
+
+Поля:
+
+- `id`;
+- `item_id`;
+- `batch_number`;
+- `manufacturer_batch_number`;
+- `manufacture_date`;
+- `expiry_date`;
+- `supplier_id`;
+- `purchase_order_id`;
+- `goods_receipt_id`;
+- `certificate_document_id`;
+- `quality_status`;
+- `quarantine_reason`;
+- `created_at`.
+
+Сущность: `serial_numbers`
+
+Поля:
+
+- `id`;
+- `item_id`;
+- `serial_number`;
+- `inventory_number`;
+- `manufacturer`;
+- `model`;
+- `commissioned_at`;
+- `warranty_until`;
+- `current_status`;
+- `current_warehouse_id`;
+- `current_employee_id`;
+- `current_project_id`;
+- `created_at`;
+- `updated_at`.
+
+Сущность: `quality_documents`
+
+Поля:
+
+- `id`;
+- `item_id`;
+- `batch_id`;
+- `document_type` - сертификат, паспорт, декларация, протокол испытаний, гарантийный талон;
+- `document_number`;
+- `issued_by`;
+- `issued_at`;
+- `valid_until`;
+- `file_id`;
+- `verification_status`;
+- `verified_by`;
+- `verified_at`.
+
+Материал, для которого сертификат обязателен, не может быть выдан в производство до подтверждения документа службой качества или ответственным специалистом.
+
+### 33.6. Заявки на материалы и оборудование
+
+Сущность: `material_requests`
+
+Поля:
+
+- `id`;
+- `request_number`;
+- `project_id`;
+- `site_id`;
+- `task_id`;
+- `requested_by`;
+- `requested_at`;
+- `required_by_date`;
+- `priority`;
+- `justification`;
+- `delivery_location`;
+- `status`;
+- `production_director_review_status`;
+- `chief_engineer_review_status`;
+- `estimate_review_status`;
+- `finance_review_status`;
+- `procurement_review_status`;
+- `approved_by`;
+- `approved_at`;
+- `rejection_reason`;
+- `created_at`;
+- `updated_at`.
+
+Сущность: `material_request_lines`
+
+Поля:
+
+- `id`;
+- `material_request_id`;
+- `item_id`;
+- `description_if_new_item`;
+- `quantity_requested`;
+- `unit_id`;
+- `quantity_approved`;
+- `quantity_reserved`;
+- `quantity_issued`;
+- `required_specification`;
+- `preferred_brand`;
+- `allowed_analogs`;
+- `estimate_position_id`;
+- `budget_amount`;
+- `comment`.
+
+Статусы заявки:
+
+- `draft`;
+- `submitted`;
+- `under_technical_review`;
+- `under_estimate_review`;
+- `under_financial_review`;
+- `approved`;
+- `partially_approved`;
+- `rejected`;
+- `reserved_from_stock`;
+- `sent_to_procurement`;
+- `partially_fulfilled`;
+- `fulfilled`;
+- `closed`.
+
+### 33.7. Логика обработки заявки
+
+1. Прораб или другое уполномоченное лицо создаёт заявку через CRM или мобильную форму.
+2. Система проверяет обязательные поля и наличие позиции в смете либо утверждённом бюджете.
+3. Система проверяет остатки на центральном и объектовых складах.
+4. При наличии материала формируется резерв и предложение о перемещении или выдаче.
+5. При недостаточном остатке дефицит автоматически передаётся в закупку.
+6. При запросе аналога заявка направляется главному инженеру или ответственному проектировщику.
+7. При превышении лимита заявка направляется на дополнительное финансовое согласование.
+8. После утверждения формируется резерв, заказ поставщику либо задание на перемещение.
+9. После получения или выдачи количество в заявке обновляется автоматически.
+10. Заявка закрывается только после полного исполнения либо утверждённого отказа от остатка.
+
+### 33.8. Поставщики
+
+Сущность: `suppliers`
+
+Поля:
+
+- `id`;
+- `legal_name`;
+- `trade_name`;
+- `tax_id`;
+- `registration_number`;
+- `legal_address`;
+- `actual_address`;
+- `contact_person`;
+- `phone`;
+- `email`;
+- `website`;
+- `bank_details_id`;
+- `supplier_category`;
+- `rating`;
+- `quality_rating`;
+- `delivery_rating`;
+- `price_rating`;
+- `payment_terms`;
+- `standard_delivery_days`;
+- `regions_served`;
+- `is_verified`;
+- `verification_date`;
+- `risk_level`;
+- `blacklist_reason`;
+- `is_active`;
+- `created_at`;
+- `updated_at`.
+
+Сущность: `supplier_contacts`
+
+Поля:
+
+- `id`;
+- `supplier_id`;
+- `full_name`;
+- `position`;
+- `phone`;
+- `email`;
+- `messenger`;
+- `is_primary`;
+- `is_active`.
+
+Сущность: `supplier_item_offers`
+
+Поля:
+
+- `id`;
+- `supplier_id`;
+- `item_id`;
+- `supplier_item_code`;
+- `brand`;
+- `unit_price`;
+- `currency`;
+- `minimum_order_quantity`;
+- `delivery_days`;
+- `valid_from`;
+- `valid_until`;
+- `payment_terms`;
+- `warranty_terms`;
+- `certificate_available`;
+- `delivery_region`;
+- `is_preferred`;
+- `updated_at`.
+
+### 33.9. Запросы коммерческих предложений
+
+Сущность: `requests_for_quotation`
+
+Поля:
+
+- `id`;
+- `rfq_number`;
+- `project_id`;
+- `material_request_id`;
+- `created_by`;
+- `issued_at`;
+- `response_deadline`;
+- `status`;
+- `technical_requirements_document_id`;
+- `commercial_conditions`;
+- `delivery_address`;
+- `created_at`;
+- `updated_at`.
+
+Сущность: `rfq_suppliers`
+
+Поля:
+
+- `id`;
+- `rfq_id`;
+- `supplier_id`;
+- `invited_at`;
+- `response_received_at`;
+- `response_status`;
+- `quotation_document_id`;
+- `total_amount`;
+- `currency`;
+- `delivery_days`;
+- `payment_terms`;
+- `warranty_terms`;
+- `technical_compliance_status`;
+- `commercial_score`;
+- `technical_score`;
+- `overall_score`;
+- `evaluation_comment`.
+
+Сущность: `rfq_lines`
+
+Поля:
+
+- `id`;
+- `rfq_id`;
+- `item_id`;
+- `quantity`;
+- `unit_id`;
+- `required_specification`;
+- `approved_analog_rules`;
+- `required_delivery_date`.
+
+Система должна автоматически формировать сравнительную таблицу по следующим критериям:
+
+- соответствие техническому заданию;
+- цена;
+- срок поставки;
+- условия оплаты;
+- гарантия;
+- наличие сертификатов;
+- стоимость доставки;
+- история качества;
+- история просрочек;
+- общий риск поставщика.
+
+### 33.10. Заказы поставщикам
+
+Сущность: `purchase_orders`
+
+Поля:
+
+- `id`;
+- `purchase_order_number`;
+- `supplier_id`;
+- `project_id`;
+- `material_request_id`;
+- `rfq_id`;
+- `contract_id`;
+- `order_date`;
+- `expected_delivery_date`;
+- `delivery_address`;
+- `payment_terms`;
+- `currency`;
+- `subtotal_amount`;
+- `tax_amount`;
+- `delivery_amount`;
+- `total_amount`;
+- `paid_amount`;
+- `outstanding_amount`;
+- `status`;
+- `approved_by`;
+- `approved_at`;
+- `created_by`;
+- `created_at`;
+- `updated_at`.
+
+Сущность: `purchase_order_lines`
+
+Поля:
+
+- `id`;
+- `purchase_order_id`;
+- `item_id`;
+- `description`;
+- `quantity_ordered`;
+- `quantity_received`;
+- `quantity_rejected`;
+- `unit_id`;
+- `unit_price`;
+- `total_price`;
+- `required_delivery_date`;
+- `certificate_required`;
+- `estimate_position_id`;
+- `budget_line_id`;
+- `status`.
+
+Статусы заказа:
+
+- `draft`;
+- `pending_approval`;
+- `approved`;
+- `sent_to_supplier`;
+- `supplier_confirmed`;
+- `partially_delivered`;
+- `delivered`;
+- `quality_hold`;
+- `closed`;
+- `cancelled`.
+
+### 33.11. Поступление и входной контроль
+
+Сущность: `goods_receipts`
+
+Поля:
+
+- `id`;
+- `receipt_number`;
+- `purchase_order_id`;
+- `supplier_id`;
+- `warehouse_id`;
+- `received_at`;
+- `received_by`;
+- `delivery_document_number`;
+- `invoice_document_id`;
+- `delivery_note_document_id`;
+- `vehicle_number`;
+- `driver_name`;
+- `status`;
+- `quality_control_status`;
+- `created_at`;
+- `posted_at`.
+
+Сущность: `goods_receipt_lines`
+
+Поля:
+
+- `id`;
+- `goods_receipt_id`;
+- `purchase_order_line_id`;
+- `item_id`;
+- `quantity_delivered`;
+- `quantity_accepted`;
+- `quantity_rejected`;
+- `unit_id`;
+- `batch_number`;
+- `serial_number`;
+- `manufacture_date`;
+- `expiry_date`;
+- `certificate_status`;
+- `visual_inspection_status`;
+- `measurement_status`;
+- `quality_comment`;
+- `photo_file_ids`;
+- `storage_location_id`.
+
+При поступлении система должна проверять:
+
+- наличие заказа;
+- соответствие номенклатуры;
+- соответствие количества;
+- соответствие марки, модели и характеристик;
+- наличие сертификатов и паспортов;
+- отсутствие видимых повреждений;
+- срок годности;
+- условия перевозки;
+- соответствие цены и документа поставщика;
+- наличие фотофиксации при установленном требовании.
+
+### 33.12. Выдача материалов в производство
+
+Сущность: `material_issues`
+
+Поля:
+
+- `id`;
+- `issue_number`;
+- `warehouse_id`;
+- `project_id`;
+- `site_id`;
+- `task_id`;
+- `material_request_id`;
+- `issued_to_employee_id`;
+- `issued_by_employee_id`;
+- `issue_date`;
+- `purpose`;
+- `status`;
+- `recipient_confirmation_method`;
+- `recipient_confirmed_at`;
+- `created_at`;
+- `posted_at`.
+
+Сущность: `material_issue_lines`
+
+Поля:
+
+- `id`;
+- `material_issue_id`;
+- `item_id`;
+- `batch_id`;
+- `serial_number_id`;
+- `quantity_requested`;
+- `quantity_issued`;
+- `unit_id`;
+- `unit_cost`;
+- `total_cost`;
+- `estimate_position_id`;
+- `work_item_id`;
+- `comment`.
+
+Получатель подтверждает выдачу одним из разрешённых способов:
+
+- электронная подпись;
+- одноразовый код;
+- подпись на мобильном устройстве;
+- подтверждение уполномоченным кладовщиком с фото;
+- бумажная накладная с последующей загрузкой скана.
+
+### 33.13. Возврат, перемещение и списание
+
+Сущность: `material_returns`
+
+Поля:
+
+- `id`;
+- `return_number`;
+- `project_id`;
+- `site_id`;
+- `source_employee_id`;
+- `destination_warehouse_id`;
+- `return_date`;
+- `reason`;
+- `condition_status`;
+- `status`;
+- `created_at`;
+- `posted_at`.
+
+Сущность: `stock_transfers`
+
+Поля:
+
+- `id`;
+- `transfer_number`;
+- `source_warehouse_id`;
+- `destination_warehouse_id`;
+- `project_id`;
+- `requested_by`;
+- `approved_by`;
+- `shipped_at`;
+- `received_at`;
+- `status`;
+- `transport_details`;
+- `created_at`.
+
+Сущность: `write_off_documents`
+
+Поля:
+
+- `id`;
+- `write_off_number`;
+- `project_id`;
+- `site_id`;
+- `warehouse_id`;
+- `write_off_date`;
+- `reason_code`;
+- `reason_description`;
+- `commission_members`;
+- `supporting_document_id`;
+- `photo_file_ids`;
+- `status`;
+- `approved_by`;
+- `approved_at`;
+- `created_at`;
+- `posted_at`.
+
+Причины списания:
+
+- фактическое использование в работах;
+- естественная убыль в пределах нормы;
+- повреждение;
+- брак;
+- истечение срока годности;
+- утрата;
+- хищение;
+- авария;
+- демонтаж без возможности повторного использования;
+- иная утверждённая причина.
+
+Списание по причине утраты, хищения или необоснованного повреждения должно автоматически направляться руководству, службе безопасности, бухгалтерии и ответственному руководителю.
+
+### 33.14. Инвентаризация
+
+Сущность: `inventory_counts`
+
+Поля:
+
+- `id`;
+- `count_number`;
+- `warehouse_id`;
+- `project_id`;
+- `count_type` - плановая, внеплановая, выборочная, при смене ответственного лица;
+- `started_at`;
+- `completed_at`;
+- `status`;
+- `commission_members`;
+- `freeze_transactions`;
+- `approved_by`;
+- `approved_at`;
+- `created_at`.
+
+Сущность: `inventory_count_lines`
+
+Поля:
+
+- `id`;
+- `inventory_count_id`;
+- `item_id`;
+- `batch_id`;
+- `serial_number_id`;
+- `system_quantity`;
+- `counted_quantity`;
+- `difference_quantity`;
+- `unit_cost`;
+- `difference_amount`;
+- `reason`;
+- `resolution`;
+- `photo_file_ids`;
+- `counted_by`;
+- `verified_by`.
+
+После утверждения результатов система формирует корректирующие операции, но не изменяет остаток без документального основания.
+
+### 33.15. Учёт инструмента
+
+Сущность: `tools`
+
+Поля:
+
+- `id`;
+- `item_id`;
+- `inventory_number`;
+- `serial_number`;
+- `tool_type`;
+- `manufacturer`;
+- `model`;
+- `purchase_date`;
+- `purchase_cost`;
+- `warranty_until`;
+- `current_status`;
+- `current_warehouse_id`;
+- `current_employee_id`;
+- `current_project_id`;
+- `condition_status`;
+- `last_inspection_at`;
+- `next_inspection_at`;
+- `created_at`;
+- `updated_at`.
+
+Сущность: `tool_assignments`
+
+Поля:
+
+- `id`;
+- `tool_id`;
+- `employee_id`;
+- `project_id`;
+- `site_id`;
+- `issued_at`;
+- `expected_return_at`;
+- `returned_at`;
+- `condition_at_issue`;
+- `condition_at_return`;
+- `issue_photo_file_ids`;
+- `return_photo_file_ids`;
+- `status`;
+- `confirmed_by_employee_at`;
+- `created_by`;
+- `created_at`.
+
+Статусы инструмента:
+
+- `available`;
+- `reserved`;
+- `issued`;
+- `in_use`;
+- `under_inspection`;
+- `under_repair`;
+- `lost`;
+- `damaged`;
+- `written_off`.
+
+### 33.16. Учёт техники и оборудования
+
+Сущность: `equipment_assets`
+
+Поля:
+
+- `id`;
+- `asset_number`;
+- `asset_type` - автомобиль, экскаватор, кран, сварочный агрегат, генератор, насос, компрессор, иное оборудование;
+- `ownership_type` - собственность, аренда, лизинг, заказчик, субподрядчик;
+- `manufacturer`;
+- `model`;
+- `serial_number`;
+- `registration_number`;
+- `vin_number`;
+- `manufacture_year`;
+- `purchase_date`;
+- `purchase_cost`;
+- `current_status`;
+- `current_project_id`;
+- `current_site_id`;
+- `responsible_employee_id`;
+- `operator_employee_id`;
+- `odometer_value`;
+- `engine_hours`;
+- `fuel_type`;
+- `fuel_norm`;
+- `last_service_at`;
+- `next_service_at`;
+- `last_inspection_at`;
+- `next_inspection_at`;
+- `insurance_until`;
+- `registration_document_until`;
+- `created_at`;
+- `updated_at`.
+
+Сущность: `equipment_assignments`
+
+Поля:
+
+- `id`;
+- `equipment_id`;
+- `project_id`;
+- `site_id`;
+- `assigned_from`;
+- `assigned_until`;
+- `responsible_employee_id`;
+- `operator_employee_id`;
+- `task_id`;
+- `status`;
+- `created_by`;
+- `created_at`.
+
+Сущность: `equipment_usage_logs`
+
+Поля:
+
+- `id`;
+- `equipment_id`;
+- `project_id`;
+- `site_id`;
+- `usage_date`;
+- `operator_employee_id`;
+- `start_time`;
+- `end_time`;
+- `engine_hours_start`;
+- `engine_hours_end`;
+- `odometer_start`;
+- `odometer_end`;
+- `fuel_issued`;
+- `fuel_consumed`;
+- `work_description`;
+- `downtime_hours`;
+- `downtime_reason`;
+- `photo_file_ids`;
+- `created_at`.
+
+### 33.17. Техническое обслуживание и ремонт
+
+Сущность: `maintenance_plans`
+
+Поля:
+
+- `id`;
+- `asset_type`;
+- `asset_id`;
+- `maintenance_type`;
+- `trigger_type` - дата, пробег, моточасы, событие;
+- `interval_value`;
+- `next_due_date`;
+- `next_due_meter_value`;
+- `responsible_employee_id`;
+- `is_active`;
+- `created_at`;
+- `updated_at`.
+
+Сущность: `maintenance_orders`
+
+Поля:
+
+- `id`;
+- `maintenance_order_number`;
+- `asset_type`;
+- `asset_id`;
+- `maintenance_type`;
+- `problem_description`;
+- `reported_by`;
+- `reported_at`;
+- `priority`;
+- `planned_start_at`;
+- `planned_end_at`;
+- `actual_start_at`;
+- `actual_end_at`;
+- `service_provider_id`;
+- `responsible_employee_id`;
+- `status`;
+- `estimated_cost`;
+- `actual_cost`;
+- `downtime_hours`;
+- `supporting_document_ids`;
+- `created_at`;
+- `updated_at`.
+
+При наступлении срока обслуживания система должна:
+
+- предупредить ответственное лицо;
+- создать проект задания на техническое обслуживание;
+- ограничить выдачу техники при критической просрочке;
+- уведомить производственного директора;
+- зафиксировать простой и влияние на график объекта.
+
+### 33.18. Учёт топлива и горюче-смазочных материалов
+
+Сущность: `fuel_transactions`
+
+Поля:
+
+- `id`;
+- `transaction_number`;
+- `transaction_type` - поступление, выдача, возврат, списание, корректировка;
+- `fuel_type`;
+- `quantity`;
+- `unit_id`;
+- `unit_price`;
+- `total_amount`;
+- `warehouse_id`;
+- `equipment_id`;
+- `vehicle_id`;
+- `employee_id`;
+- `project_id`;
+- `site_id`;
+- `odometer_value`;
+- `engine_hours`;
+- `fuel_card_id`;
+- `receipt_document_id`;
+- `transaction_date`;
+- `created_by`;
+- `created_at`.
+
+Система должна рассчитывать:
+
+- расход на километр;
+- расход на моточас;
+- расход по объекту;
+- отклонение от утверждённой нормы;
+- подозрительные повторные заправки;
+- несоответствие пробега, моточасов и объёма топлива.
+
+### 33.19. Мобильная форма прораба
+
+Прораб должен иметь возможность через мобильное приложение или адаптивную CRM:
+
+- создать заявку на материал;
+- выбрать объект, этап, задачу и сметную позицию;
+- указать количество и требуемую дату;
+- приложить фото, схему или голосовой комментарий;
+- увидеть остаток на складе;
+- отслеживать статус заявки;
+- подтвердить получение материалов;
+- оформить возврат неиспользованного материала;
+- передать инструмент сотруднику;
+- сообщить о поломке техники или инструмента;
+- загрузить фото повреждения;
+- зафиксировать показания пробега или моточасов;
+- отправить отчёт о расходе топлива;
+- увидеть подотчётные средства и связанные расходы;
+- получить уведомление о необходимости отчёта или возврата ценностей.
+
+Мобильная форма должна работать с сохранением черновика при нестабильном интернете и синхронизировать данные после восстановления соединения.
+
+### 33.20. Фотографии, файлы и подтверждения
+
+Сущность: `inventory_evidence_files`
+
+Поля:
+
+- `id`;
+- `entity_type`;
+- `entity_id`;
+- `file_id`;
+- `evidence_type` - фото поступления, фото повреждения, накладная, сертификат, акт, подпись, чек, видео;
+- `captured_at`;
+- `latitude`;
+- `longitude`;
+- `uploaded_by`;
+- `uploaded_at`;
+- `verification_status`;
+- `verified_by`;
+- `verified_at`;
+- `comment`.
+
+Система не должна считать фото единственным доказательством количества без соответствующей складской операции, но должна использовать фото как дополнительное подтверждение.
+
+### 33.21. Согласование закупок
+
+Сущность: `procurement_approvals`
+
+Поля:
+
+- `id`;
+- `entity_type` - заявка, запрос предложений, заказ, аванс, изменение цены, замена материала;
+- `entity_id`;
+- `approval_step`;
+- `approver_role_id`;
+- `approver_employee_id`;
+- `decision`;
+- `decision_comment`;
+- `requested_at`;
+- `decided_at`;
+- `deadline_at`;
+- `escalated_at`;
+- `created_at`.
+
+Маршрут согласования определяется:
+
+- суммой;
+- категорией материала;
+- объектом;
+- наличием в смете;
+- наличием договора;
+- типом поставщика;
+- срочностью;
+- необходимостью технического согласования;
+- уровнем риска.
+
+### 33.22. Бюджетный контроль
+
+Каждая закупочная позиция должна быть связана с:
+
+- проектом;
+- объектом;
+- договором;
+- бюджетной статьёй;
+- сметной позицией при наличии;
+- заявкой;
+- заказом;
+- поступлением;
+- оплатой;
+- фактическим расходом или остатком.
+
+Система должна рассчитывать:
+
+```text
+доступный бюджет = утверждённый бюджет - обязательства - фактические расходы
+```
+
+Где:
+
+- обязательства - утверждённые, но ещё не оплаченные заказы;
+- фактические расходы - оплаченные и признанные расходы;
+- доступный бюджет - сумма, которую можно использовать без дополнительного согласования.
+
+### 33.23. Связь с подотчётными денежными средствами
+
+При закупке сотрудником за подотчётные средства должны создаваться связи между:
+
+- записью о выдаче денежных средств;
+- материальной заявкой;
+- закупочной операцией;
+- чеком или иным подтверждающим документом;
+- поступлением материала;
+- фактической выдачей на объект;
+- авансовым отчётом;
+- остатком либо возвратом денежных средств.
+
+Материал, купленный за подотчётные средства, должен быть оприходован либо напрямую списан на утверждённую задачу с обязательным подтверждением.
+
+### 33.24. ИИ-контроль склада и закупок
+
+ИИ-агент снабжения и складского контроля должен:
+
+- выявлять дефицит;
+- предлагать перемещение между складами до новой закупки;
+- искать дублирующие заявки;
+- проверять наличие позиции в смете и бюджете;
+- выявлять закупки по цене выше исторической или рыночной;
+- сравнивать поставщиков;
+- предупреждать о просрочке поставки;
+- контролировать сертификаты;
+- выявлять неиспользуемые остатки;
+- анализировать перерасход;
+- выявлять частые срочные закупки;
+- обнаруживать необоснованные списания;
+- выявлять инструмент и технику без назначенного ответственного;
+- напоминать о ремонтах, ТО и поверках;
+- готовить проекты поручений ответственным лицам;
+- передавать критические отклонения независимому аудитору и руководству.
+
+ИИ-агент не имеет права самостоятельно:
+
+- утверждать крупную закупку;
+- изменять проектную спецификацию;
+- заменять материал на аналог;
+- списывать материальные ценности;
+- проводить оплату;
+- удалять подтверждённые операции.
+
+### 33.25. Отчёты и аналитика
+
+Система должна формировать:
+
+- остатки по складам;
+- остатки по объектам;
+- дефицит;
+- материалы в резерве;
+- материалы в пути;
+- просроченные поставки;
+- заявки по статусам;
+- закупки по поставщикам;
+- сравнение плановой и фактической стоимости;
+- экономию и перерасход;
+- медленно оборачиваемые остатки;
+- неиспользуемые остатки;
+- списания по причинам;
+- недостачи и излишки;
+- инструмент по сотрудникам;
+- просроченные возвраты инструмента;
+- технику по объектам;
+- простои техники;
+- расходы на ремонт;
+- расход топлива;
+- отклонение расхода топлива от нормы;
+- закупки за подотчётные средства;
+- рейтинг поставщиков;
+- риск поставок по объектам.
+
+### 33.26. Уведомления и эскалации
+
+Автоматические уведомления создаются при:
+
+- достижении минимального остатка;
+- отсутствии материала для критической задачи;
+- просрочке согласования заявки;
+- просрочке поставки;
+- расхождении поступления и заказа;
+- отсутствии сертификата;
+- выявлении брака;
+- превышении бюджета;
+- попытке повторной закупки при наличии остатка;
+- просрочке возврата инструмента;
+- поломке критической техники;
+- просрочке ТО, страховки, регистрации или поверки;
+- превышении нормы топлива;
+- недостаче по итогам инвентаризации;
+- списании по причине утраты или хищения.
+
+### 33.27. Права доступа
+
+Рекомендуемые роли:
+
+- генеральный директор - полный просмотр, утверждение критических операций;
+- исполнительный директор - просмотр и согласование в пределах полномочий;
+- производственный директор - заявки, распределение ресурсов, контроль объектов;
+- главный инженер - техническое согласование и аналоги;
+- сметчик - проверка сметных позиций, объёмов и стоимости;
+- бухгалтер - финансовые документы, оплаты, подотчёт и стоимость;
+- руководитель снабжения - поставщики, запросы предложений, заказы;
+- кладовщик - поступление, выдача, перемещение, инвентаризация;
+- прораб - заявки, подтверждение получения, возвраты, мобильные отчёты;
+- механик - техника, ТО, ремонты;
+- сотрудник - получение и возврат закреплённого инструмента;
+- ИИ-агент - чтение разрешённых данных, анализ, подготовка рекомендаций без права проведения критических операций;
+- независимый аудитор - просмотр истории, рисков и подтверждений.
+
+### 33.28. Журнал аудита
+
+Сущность: `inventory_audit_log`
+
+Поля:
+
+- `id`;
+- `entity_type`;
+- `entity_id`;
+- `action_type`;
+- `old_value_json`;
+- `new_value_json`;
+- `performed_by_user_id`;
+- `performed_by_agent_id`;
+- `performed_at`;
+- `ip_address`;
+- `device_id`;
+- `reason`;
+- `approval_reference_id`;
+- `correlation_id`.
+
+Журнал аудита должен быть защищён от изменения обычными пользователями.
+
+### 33.29. Интеграции
+
+Модуль должен предусматривать интеграцию с:
+
+- CRM;
+- мобильным приложением прораба;
+- бухгалтерской системой;
+- модулем подотчётных средств;
+- проектным управлением;
+- сметным модулем;
+- документооборотом;
+- электронной почтой;
+- официально подключёнными мессенджерами;
+- файловым хранилищем;
+- модулем ИИ-агентов;
+- системой уведомлений;
+- API поставщиков при наличии;
+- системами GPS и телематики для техники при наличии.
+
+### 33.30. Требования безопасности
+
+- операции подтверждаются авторизованным пользователем;
+- критические действия требуют многофакторного подтверждения либо дополнительного согласования;
+- финансовые и складские документы не удаляются после проведения;
+- права назначаются по принципу минимально необходимого доступа;
+- доступ к стоимости и коммерческим условиям ограничивается;
+- документы поставщиков проверяются на допустимые форматы;
+- загрузки проходят антивирусную проверку;
+- все интеграции используют защищённые ключи и шифрование;
+- резервное копирование выполняется по утверждённому графику;
+- восстановление базы должно регулярно тестироваться;
+- персональные данные обрабатываются согласно действующим требованиям;
+- секретные ключи не хранятся в открытом виде в GitHub.
+
+### 33.31. Критерии готовности модуля
+
+Модуль считается готовым к опытной эксплуатации, если пользователь может:
+
+1. Создать номенклатурную позицию.
+2. Создать склад и место хранения.
+3. Создать заявку на материал с мобильного устройства.
+4. Проверить остаток.
+5. Зарезервировать материал.
+6. Передать дефицит в закупку.
+7. Запросить предложения поставщиков.
+8. Сравнить предложения.
+9. Согласовать заказ.
+10. Зарегистрировать поступление.
+11. Провести входной контроль.
+12. Оприходовать материал.
+13. Выдать материал на объект.
+14. Получить подтверждение прораба.
+15. Оформить возврат, перемещение и списание.
+16. Провести инвентаризацию.
+17. Закрепить инструмент за сотрудником.
+18. Учитывать технику, пробег, моточасы и топливо.
+19. Создать заявку на ремонт.
+20. Получить отчёт по остаткам, закупкам, перерасходу, недостачам и рискам.
+21. Просмотреть историю всех действий.
+22. Связать закупку с подотчётными средствами, чеком и авансовым отчётом.
+
+### 33.32. Связи основных сущностей
+
+```text
+PROJECT
+  -> MATERIAL_REQUEST
+      -> MATERIAL_REQUEST_LINE
+          -> INVENTORY_RESERVATION
+          -> REQUEST_FOR_QUOTATION
+              -> SUPPLIER_QUOTATION
+                  -> PURCHASE_ORDER
+                      -> GOODS_RECEIPT
+                          -> INVENTORY_TRANSACTION
+                              -> INVENTORY_BALANCE
+                              -> MATERIAL_ISSUE
+                                  -> TASK / WORK_ITEM / ESTIMATE_POSITION
+
+EMPLOYEE
+  -> TOOL_ASSIGNMENT
+  -> EQUIPMENT_ASSIGNMENT
+  -> ACCOUNTABLE_FUNDS
+  -> MATERIAL_RECEIPT_CONFIRMATION
+
+EQUIPMENT_ASSET
+  -> EQUIPMENT_USAGE_LOG
+  -> FUEL_TRANSACTION
+  -> MAINTENANCE_ORDER
+
+SUPPLIER
+  -> SUPPLIER_ITEM_OFFER
+  -> RFQ_RESPONSE
+  -> PURCHASE_ORDER
+  -> GOODS_RECEIPT
+  -> SUPPLIER_RATING
+```
+
+### 33.33. Рекомендуемые индексы базы данных
+
+Необходимо предусмотреть индексы по полям:
+
+- `project_id`;
+- `site_id`;
+- `warehouse_id`;
+- `item_id`;
+- `supplier_id`;
+- `employee_id`;
+- `task_id`;
+- `status`;
+- `transaction_date`;
+- `required_by_date`;
+- `expected_delivery_date`;
+- `serial_number`;
+- `inventory_number`;
+- `purchase_order_number`;
+- `material_request_id`;
+- составной индекс `warehouse_id + item_id + batch_id`;
+- составной индекс `project_id + status`;
+- составной индекс `supplier_id + item_id`;
+- составной индекс `equipment_id + usage_date`.
+
+### 33.34. Хранение и архивирование
+
+- активные операции хранятся в основной базе;
+- закрытые документы остаются доступными для поиска;
+- сканы, фото и видео хранятся в файловом хранилище со ссылкой из базы;
+- контрольные суммы файлов фиксируются для проверки целостности;
+- документы не должны терять связь с объектом, задачей и операцией;
+- сроки хранения определяются договорными, бухгалтерскими, налоговыми и внутренними требованиями;
+- архивирование не должно препятствовать аудиту и восстановлению истории.
+
+### 33.35. Правило дальнейшей детализации
+
+Настоящий раздел определяет логическую модель. Физическая схема базы данных, типы полей, ограничения, внешние ключи, миграции и API-контракты уточняются при разработке.
+
+Любое изменение структуры данных должно:
+
+- сохранять историю;
+- иметь миграцию;
+- проходить тестирование;
+- не нарушать существующие связи;
+- быть отражено в документации;
+- быть утверждено ответственным архитектором системы.
+
