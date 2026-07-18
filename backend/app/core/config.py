@@ -41,6 +41,11 @@ class Settings(BaseSettings):
         "postgresql+psycopg://badrudin:change-me@localhost:5432/badrudin"
     )
 
+    # Redis / Celery (D-008)
+    redis_url: str = "redis://redis:6379/0"
+    celery_broker_url: str = "redis://redis:6379/1"
+    celery_result_backend: str = "redis://redis:6379/2"
+
     # Аутентификация / JWT. Секрет задаётся через окружение (не хранится в коде).
     jwt_secret: str = "change-me"
     jwt_algorithm: str = "HS256"
