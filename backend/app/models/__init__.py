@@ -12,6 +12,13 @@ from app.models.organization import (
     Organization,
     Position,
 )
+from app.models.content import (
+    DailyReport,
+    Document,
+    DocumentVersion,
+    File,
+    Notification,
+)
 from app.models.project import (
     Project,
     ProjectLocation,
@@ -50,4 +57,9 @@ __all__ = [
     "TaskEvidence",
     "Approval",
     "ApprovalStep",
+    "File",
+    "Document",
+    "DocumentVersion",
+    "DailyReport",
+    "Notification",
 ]
