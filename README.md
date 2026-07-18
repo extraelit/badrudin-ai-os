@@ -78,6 +78,33 @@
 | [IMPLEMENTATION_PLAN.md](DOCS/IMPLEMENTATION_PLAN.md) | План реализации Этапа 1 «Технический фундамент» |
 | [TASKS.md](DOCS/TASKS.md) | Задачи Этапа 1 (блоки 1.A–1.J) с зависимостями и критериями приёмки |
 
+## Структура репозитория
+
+Каркас каталогов создан в рамках задачи T-1.A1 (см. [TASKS.md](DOCS/TASKS.md)).
+Полное описание — в [IMPLEMENTATION_PLAN.md](DOCS/IMPLEMENTATION_PLAN.md),
+раздел 7 (на базе `DOCS/ARCHITECTURE.md` раздел 15, канон имён — решение D-016).
+
+```text
+badrudin-ai-os/
+├── README.md
+├── ACCESS_CONTROL.md
+├── DOCS/                     — документация проекта
+├── backend/                 — серверное приложение (FastAPI)
+│   ├── app/                 — api, core, models, schemas, services,
+│   │                          workflows, integrations, agents
+│   └── tests/
+├── frontend/                — веб-интерфейс (Next.js)
+├── automation/n8n/          — сценарии автоматизации n8n
+├── database/                — migrations, seeds, diagrams, fixtures
+├── infrastructure/          — конфигурации развёртывания
+├── scripts/                 — вспомогательные скрипты
+└── tests/                   — сквозные тесты
+```
+
+Пустые каталоги зафиксированы файлами `.gitkeep`. Файлы `.env.example`,
+`.gitignore`, `docker-compose.yml` и каркасы приложений добавляются
+последующими задачами Этапа 1 (T-1.A2–T-1.A5).
+
 ## Рекомендуемый порядок чтения
 
 1. `README.md` — общее представление о проекте и статусе.
