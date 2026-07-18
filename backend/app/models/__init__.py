@@ -12,6 +12,8 @@ from app.models.organization import (
     Organization,
     Position,
 )
+from app.models.agent import AgentRun, AIAgent
+from app.models.audit import AuditEvent
 from app.models.content import (
     DailyReport,
     Document,
@@ -62,4 +64,7 @@ __all__ = [
     "DocumentVersion",
     "DailyReport",
     "Notification",
+    "AIAgent",
+    "AgentRun",
+    "AuditEvent",
 ]
