@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     backend_host: str = "0.0.0.0"
     backend_port: int = 8000
 
+    # Подключение к базе данных (D-004: PostgreSQL). Значение берётся из окружения.
+    database_url: str = (
+        "postgresql+psycopg://badrudin:change-me@localhost:5432/badrudin"
+    )
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
