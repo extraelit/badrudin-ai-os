@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 from celery import Celery
 
 from app.core.config import get_settings
@@ -29,6 +31,16 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
 )
+
+# Расписание периодических задач (T-1.F2). Каркас для напоминаний и эскалаций
+# (реализация правил — на последующих этапах); здесь — heartbeat для проверки
+# работоспособности планировщика.
+celery_app.conf.beat_schedule = {
+    "heartbeat": {
+        "task": "badrudin.ping",
+        "schedule": timedelta(hours=1),
+    },
+}
 
 
 @celery_app.task(name="badrudin.ping")
