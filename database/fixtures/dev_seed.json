@@ -1,0 +1,23 @@
+{
+  "_note": "Тестовые (обезличенные) данные для среды разработки. Не содержат реальных персональных данных и секретов (D-011).",
+  "organizations": [
+    { "legal_name": "ООО «Экстра-Элит» (ТЕСТ)", "short_name": "Экстра-Элит ТЕСТ" }
+  ],
+  "roles": [
+    { "code": "system_owner", "name": "Владелец системы", "is_system": true },
+    { "code": "general_director", "name": "Генеральный директор" },
+    { "code": "production_director", "name": "Производственный директор" },
+    { "code": "foreman", "name": "Прораб" },
+    { "code": "accountant", "name": "Бухгалтер" },
+    { "code": "viewer", "name": "Наблюдатель" }
+  ],
+  "permissions": [
+    { "code": "project.view" },
+    { "code": "project.create" },
+    { "code": "task.create" },
+    { "code": "task.approve" },
+    { "code": "task.assign" },
+    { "code": "finance.view" },
+    { "code": "audit.view" }
+  ]
+}
