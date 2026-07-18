@@ -10,10 +10,19 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, ForeignKey, String, Text, Uuid, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import JSON, DateTime, ForeignKey, String, Text, Uuid, event, func
+from sqlalchemy.orm import Mapped, Mapper, mapped_column
 
 from app.db.base import Base, UUIDPrimaryKeyMixin
+
+
+class AuditImmutableError(RuntimeError):
+    """Попытка изменить или удалить запись журнала аудита."""
+
+
+# Разрешение на удаление по утверждённой политике хранения (ACCESS_CONTROL 20.3).
+# По умолчанию удаление запрещено; включается только уполномоченным процессом.
+ALLOW_AUDIT_DELETION = False
 
 
 class AuditEvent(UUIDPrimaryKeyMixin, Base):
@@ -41,3 +50,18 @@ class AuditEvent(UUIDPrimaryKeyMixin, Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+@event.listens_for(AuditEvent, "before_update")
+def _forbid_audit_update(mapper: Mapper, connection, target: AuditEvent) -> None:
+    raise AuditImmutableError(
+        "Запись журнала аудита не может быть изменена (append-only)."
+    )
+
+
+@event.listens_for(AuditEvent, "before_delete")
+def _forbid_audit_delete(mapper: Mapper, connection, target: AuditEvent) -> None:
+    if not ALLOW_AUDIT_DELETION:
+        raise AuditImmutableError(
+            "Удаление журнала аудита запрещено вне утверждённой политики хранения."
+        )
