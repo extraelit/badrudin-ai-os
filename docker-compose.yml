@@ -1,0 +1,177 @@
+# docker-compose.yml — dev-профиль Badrudin AI OS (T-1.A3)
+#
+# Набор сервисов по ARCHITECTURE.md раздел 17 (D-004, D-007, D-008).
+# Конфигурация — только через переменные окружения (файл .env; шаблон —
+# .env.example, T-1.A2). Секреты в этот файл не вписываются.
+#
+# Примечания по зависимостям между задачами Этапа 1:
+# - сервисы backend / worker / scheduler / frontend собираются из образов,
+#   которые появляются в T-1.A4 (backend) и T-1.A5 (frontend); до этого их
+#   сборка недоступна, инфраструктурные сервисы поднимаются самостоятельно;
+# - маршрутизация reverse-proxy и TLS — T-1.J1 / T-1.J2;
+# - конфигурация мониторинга и алертов — T-1.J3.
+
+name: badrudin-ai-os
+
+services:
+  # ---------------------------------------------------------------- PostgreSQL
+  postgresql:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-badrudin}
+      POSTGRES_USER: ${POSTGRES_USER:-badrudin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-badrudin} -d ${POSTGRES_DB:-badrudin}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # --------------------------------------------------------------------- Redis
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-change-me}"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-change-me} ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ------------------------------------------------ Объектное хранилище (MinIO)
+  minio:
+    image: minio/minio
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-change-me}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-change-me}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ----------------------------------------------------------------------- n8n
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    environment:
+      N8N_HOST: ${N8N_HOST:-localhost}
+      N8N_PORT: ${N8N_PORT:-5678}
+      N8N_PROTOCOL: ${N8N_PROTOCOL:-http}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-change-me}
+      N8N_BASIC_AUTH_ACTIVE: ${N8N_BASIC_AUTH_ACTIVE:-true}
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-change-me}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-change-me}
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    volumes:
+      - n8n-data:/home/node/.n8n
+    restart: unless-stopped
+
+  # ------------------------------------------------------------ Backend (FastAPI)
+  # Образ появляется в T-1.A4; до этого сервис не собирается.
+  backend:
+    build: ./backend
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      postgresql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ------------------------------------------------------- Worker (Celery, T-1.F1)
+  # Использует образ backend (T-1.A4); команда активируется после каркаса backend.
+  worker:
+    build: ./backend
+    command: ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=info"]
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+  # --------------------------------------------------- Scheduler (Celery beat, F2)
+  scheduler:
+    build: ./backend
+    command: ["celery", "-A", "app.worker.celery_app", "beat", "--loglevel=info"]
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    restart: unless-stopped
+
+  # ----------------------------------------------------------- Frontend (Next.js)
+  # Образ появляется в T-1.A5; до этого сервис не собирается.
+  frontend:
+    build: ./frontend
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  # ------------------------------------------------- Reverse-proxy (routing: T-1.J1)
+  reverse-proxy:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+
+  # ------------------------------------------------- Monitoring (config: T-1.J3)
+  monitoring:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redis-data:
+  minio-data:
+  n8n-data:
+
+networks:
+  default:
+    name: badrudin-net
