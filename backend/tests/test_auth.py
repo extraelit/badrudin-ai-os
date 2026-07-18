@@ -51,4 +51,4 @@ def test_lockout_after_repeated_failures(client, seed_user) -> None:
         json={"email": "foreman@example.com", "password": "Secret123!"},
     )
     assert resp.status_code == 401
-    assert "заблокирован" in resp.json()["detail"].lower()
+    assert "заблокирован" in resp.json()["error"]["message"].lower()

@@ -37,7 +37,7 @@ def test_critical_role_without_mfa_denied(client, db_session) -> None:
         "/auth/login", json={"email": user.email, "password": "Secret123!"}
     )
     assert resp.status_code == 401
-    assert "многофактор" in resp.json()["detail"].lower()
+    assert "многофактор" in resp.json()["error"]["message"].lower()
 
 
 def test_critical_role_with_mfa_code(client, db_session) -> None:
