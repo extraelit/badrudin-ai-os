@@ -130,6 +130,7 @@ from app.models.equipment import (
 )
 from app.models.field_report import DailyReportEquipment, DailyReportFile
 from app.models.inbox import InboxItem
+from app.models.audit_finding import AuditFinding
 from app.models.integration import IntegrationConnector, OutboundMessage
 from app.models.smm import (
     ContentPlanItem,
@@ -205,6 +206,7 @@ __all__ = [
     "ContentPlanItem",
     "SocialPublication",
     "SocialPublicationAsset",
+    "AuditFinding",
     "ProjectMilestone",
     "ProjectDiscipline",
     "Counterparty",
