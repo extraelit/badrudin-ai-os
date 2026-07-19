@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app import __version__
 from app.api import (
     accountable,
+    agents,
     auth,
     core,
     crm,
@@ -59,6 +60,7 @@ def create_app() -> FastAPI:
     app.include_router(task_control.router)
     app.include_router(digest.router)
     app.include_router(inbox.router)
+    app.include_router(agents.router)
     app.include_router(personnel.router)
     app.include_router(design.router)
     app.include_router(estimates.router)
