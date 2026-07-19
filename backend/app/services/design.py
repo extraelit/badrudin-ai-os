@@ -32,6 +32,7 @@ from app.models import (
     DesignSpecification,
     Document,
     MarketAvailabilityCheck,
+    Project,
     ProjectDiscipline,
     SupplierProduct,
     Task,
@@ -324,8 +325,9 @@ def request_documentation_release(
         )
     if discipline.status == "issued":
         raise DesignStateError("раздел уже выпущен")
+    project = session.get(Project, discipline.project_id)
     approval = Approval(
-        organization_id=None,
+        organization_id=project.organization_id if project else document.organization_id,
         entity_type="project_discipline",
         entity_id=discipline.id,
         approval_type="documentation_release",
