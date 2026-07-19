@@ -68,6 +68,7 @@ def me(
     permissions = get_permission_codes(db, current.id)
     return CurrentUser(
         id=str(current.id), email=current.email, status=current.status,
+        employee_id=str(current.employee_id) if current.employee_id else None,
         roles=sorted(roles), permissions=sorted(permissions),
     )
 

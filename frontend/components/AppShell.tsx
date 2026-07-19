@@ -59,6 +59,13 @@ const NAV: NavGroup[] = [
     ],
   },
   {
+    section: "Подотчётные средства",
+    items: [
+      { href: "/accountable", label: "Выдачи и расходы", icon: "finance" },
+      { href: "/accountable/review", label: "Проверка (бухгалтер)", icon: "approvals" },
+    ],
+  },
+  {
     section: "Операции",
     items: [
       { href: "/documents", label: "Документы", icon: "documents" },
@@ -146,6 +153,8 @@ const TITLES: Record<string, { title: string; sub: string }> = {
   "/finance/payment-requests": { title: "Заявки на оплату", sub: "Согласование R3/R4 + MFA · человек в контуре" },
   "/finance/payments": { title: "Платежи", sub: "Ручная фиксация оплат · без банковских операций" },
   "/finance/plan-fact": { title: "План-факт по проектам", sub: "Бюджет, обязательства, факт и прогноз портфеля" },
+  "/accountable": { title: "Подотчётные средства", sub: "Выдача под отчёт, расходы с чеками, авансовый отчёт" },
+  "/accountable/review": { title: "Проверка подотчётных расходов", sub: "Бухгалтер: проверка расходов, отчётов, возврат/возмещение" },
   "/procurement": { title: "Снабжение и закупки — сводка", sub: "Заявки, заказы, поставки, склад" },
   "/procurement/requests": { title: "Заявки на материалы", sub: "Проверка сметы и остатков, согласование R2" },
   "/procurement/rfq": { title: "Запросы цен и сравнение КП", sub: "Предложения поставщиков и выбор цены" },

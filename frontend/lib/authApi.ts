@@ -31,6 +31,7 @@ export interface CurrentUser {
   id: string;
   email: string;
   status: string;
+  employee_id: string | null;
   roles: string[];
   permissions: string[];
 }
