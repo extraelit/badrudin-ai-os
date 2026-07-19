@@ -389,14 +389,16 @@ def settle(
     """
     if settlement_type not in ("return", "reimbursement"):
         raise AccountableStateError(f"неизвестный тип расчёта '{settlement_type}'")
-    if advance.status not in ("awaiting_return", "awaiting_reimbursement"):
-        raise AccountableStateError("расчёт возможен только после проверки отчёта")
+    # идемпотентность проверяется до контроля состояния: повтор с тем же ключом
+    # возвращает ранее созданную операцию, даже если выдача уже закрыта.
     if idempotency_key:
         existing = session.execute(
             select(AdvanceSettlement).where(AdvanceSettlement.idempotency_key == idempotency_key)
         ).scalars().first()
         if existing is not None:
             return existing
+    if advance.status not in ("awaiting_return", "awaiting_reimbursement"):
+        raise AccountableStateError("расчёт возможен только после проверки отчёта")
     amt = _q(Decimal(amount))
     if amt <= 0:
         raise AccountableValidationError("сумма расчёта должна быть > 0")
