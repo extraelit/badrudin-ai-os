@@ -77,6 +77,19 @@ from app.models.design import (
     Supplier,
     SupplierProduct,
 )
+from app.models.crm import (
+    Communication,
+    Contract,
+    CounterpartyContact,
+    CrmSettings,
+    Deal,
+    DealLossReason,
+    DealStageHistory,
+    Lead,
+    LeadSource,
+    PipelineStage,
+    SalesTarget,
+)
 from app.models.personnel import (
     DailyReportHeadcount,
     DailyReportIssue,
@@ -181,4 +194,15 @@ __all__ = [
     "EstimateChange",
     "CommercialOffer",
     "QuoteComparison",
+    "CrmSettings",
+    "LeadSource",
+    "DealLossReason",
+    "PipelineStage",
+    "CounterpartyContact",
+    "Lead",
+    "Deal",
+    "DealStageHistory",
+    "Communication",
+    "Contract",
+    "SalesTarget",
 ]

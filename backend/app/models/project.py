@@ -31,7 +31,10 @@ class Project(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     code: Mapped[str | None] = mapped_column(String(64), nullable=True)
     name: Mapped[str] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(String(2000), nullable=True)
-    customer_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    # заказчик проекта — контрагент CRM (формализованный внешний ключ)
+    customer_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("counterparties.id"), nullable=True
+    )
     status: Mapped[str] = mapped_column(String(32), default="active")
     priority: Mapped[str] = mapped_column(String(16), default="normal")
     start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
