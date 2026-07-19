@@ -129,6 +129,7 @@ from app.models.equipment import (
     ToolAssignment,
 )
 from app.models.field_report import DailyReportEquipment, DailyReportFile
+from app.models.inbox import InboxItem
 from app.models.rbac import Permission, Role, RolePermission, UserRole
 from app.models.task import (
     Approval,
@@ -189,6 +190,7 @@ __all__ = [
     "FuelTransaction",
     "Tool",
     "ToolAssignment",
+    "InboxItem",
     "ProjectMilestone",
     "ProjectDiscipline",
     "Counterparty",
