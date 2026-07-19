@@ -24,6 +24,12 @@
     { "code": "payroll.view" },
     { "code": "payroll.manage" },
     { "code": "payroll.approve" },
-    { "code": "safety.manage" }
+    { "code": "safety.manage" },
+    { "code": "design.view" },
+    { "code": "design.manage" },
+    { "code": "design.brief.approve" },
+    { "code": "design.release" },
+    { "code": "design.issue.manage" },
+    { "code": "supplier.view" }
   ]
 }
