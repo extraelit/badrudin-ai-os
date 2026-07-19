@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Badrudin AI OS",
+  title: "Badrudin AI OS — цифровая операционная система",
   description: "Цифровая операционная система ООО «Экстра-Элит»",
 };
 
