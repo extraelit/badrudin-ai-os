@@ -28,6 +28,7 @@
     { "code": "daily_report.approve" },
     { "code": "finance.view" },
     { "code": "audit.view" },
+    { "code": "management.view" },
     { "code": "personnel.view" },
     { "code": "personnel.manage" },
     { "code": "payroll.view" },
@@ -70,7 +71,7 @@
       "task.view", "task.create", "task.approve", "task.assign", "task.execute",
       "approval.view", "approval.decide",
       "daily_report.view", "daily_report.manage", "daily_report.approve",
-      "audit.view", "finance.view", "budget.view", "personnel.view",
+      "audit.view", "management.view", "finance.view", "budget.view", "personnel.view",
       "procurement.view", "procurement.manage", "procurement.approve",
       "warehouse.view", "warehouse.manage", "estimate.view", "crm.view",
       "accountable.view", "accountable.manage", "accountable.approve"
