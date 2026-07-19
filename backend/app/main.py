@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
 from app.api import (
+    accountable,
     auth,
     core,
     crm,
@@ -55,6 +56,7 @@ def create_app() -> FastAPI:
     app.include_router(procurement.router)
     app.include_router(crm.router)
     app.include_router(finance.router)
+    app.include_router(accountable.router)
     return app
 
 

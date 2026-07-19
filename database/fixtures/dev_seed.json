@@ -57,7 +57,11 @@
     { "code": "budget.approve" },
     { "code": "invoice.manage" },
     { "code": "payment.request" },
-    { "code": "payment.approve" }
+    { "code": "payment.approve" },
+    { "code": "accountable.view" },
+    { "code": "accountable.manage" },
+    { "code": "accountable.approve" },
+    { "code": "accountable.account" }
   ],
   "role_permissions": {
     "production_director": [
@@ -66,14 +70,17 @@
       "approval.view", "approval.decide",
       "daily_report.view", "daily_report.manage", "daily_report.approve",
       "audit.view", "finance.view", "budget.view", "personnel.view",
-      "procurement.view", "estimate.view", "crm.view"
+      "procurement.view", "estimate.view", "crm.view",
+      "accountable.view", "accountable.manage", "accountable.approve"
     ],
     "foreman": [
       "project.view", "site.manage", "task.view", "task.execute",
-      "daily_report.view", "daily_report.manage"
+      "daily_report.view", "daily_report.manage",
+      "accountable.view", "accountable.manage"
     ],
     "accountant": [
-      "project.view", "finance.view", "budget.view", "payroll.view", "audit.view"
+      "project.view", "finance.view", "budget.view", "payroll.view", "audit.view",
+      "accountable.view", "accountable.account"
     ],
     "viewer": [
       "project.view", "task.view", "approval.view", "daily_report.view"

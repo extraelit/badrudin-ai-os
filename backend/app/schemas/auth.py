@@ -24,5 +24,6 @@ class CurrentUser(BaseModel):
     id: str
     email: EmailStr
     status: str
+    employee_id: str | None = None
     roles: list[str] = []
     permissions: list[str] = []
