@@ -88,6 +88,12 @@ const NAV: NavGroup[] = [
     ],
   },
   {
+    section: "Техника и инструмент",
+    items: [
+      { href: "/equipment", label: "Техника, транспорт, инструмент", icon: "procurement" },
+    ],
+  },
+  {
     section: "Персонал объектов",
     items: [
       { href: "/personnel", label: "Сводка по объектам", icon: "employees" },
@@ -169,6 +175,7 @@ const TITLES: Record<string, { title: string; sub: string }> = {
   "/procurement/orders": { title: "Заказы поставщикам", sub: "Согласование R3/R4, резервирование" },
   "/procurement/receipts": { title: "Поступление и входной контроль", sub: "Приёмка, качество, оприходование" },
   "/procurement/stock": { title: "Складской учёт и остатки", sub: "Остатки, свободный остаток, резервы, точка дозаказа, журнал движений" },
+  "/equipment": { title: "Техника, транспорт и инструмент", sub: "Реестр, назначение, эксплуатация, топливо, техобслуживание, инструмент" },
   "/procurement/warehouse": { title: "Склад: остатки и движения", sub: "Остатки, резервы, проводки" },
   "/procurement/inventory": { title: "Выдача и инвентаризация", sub: "Выдача на объект и сверка остатков" },
   "/documents": { title: "Документы", sub: "База знаний и документооборот" },
