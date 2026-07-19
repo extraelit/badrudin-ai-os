@@ -18,6 +18,7 @@ from sqlalchemy import (
     Text,
     Uuid,
     false,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -59,6 +60,14 @@ class Task(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
         DateTime(timezone=True), nullable=True
     )
     completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # контроль исполнения: причина текущей блокировки, счётчик и время эскалации
+    blocked_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    escalation_level: Mapped[int] = mapped_column(
+        Integer, default=0, server_default=text("0"), nullable=False
+    )
+    escalated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
     approval_required: Mapped[bool] = mapped_column(
