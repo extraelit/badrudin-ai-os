@@ -55,6 +55,18 @@ const NAV: NavGroup[] = [
     ],
   },
   {
+    section: "Проектирование и дизайн",
+    items: [
+      { href: "/design", label: "Рабочее пространство", icon: "dashboard" },
+      { href: "/design/disciplines", label: "ГИП — разделы", icon: "tasks" },
+      { href: "/design/brief", label: "Техническое задание", icon: "documents" },
+      { href: "/design/concepts", label: "Концепции", icon: "reports" },
+      { href: "/design/specifications", label: "Спецификации", icon: "procurement" },
+      { href: "/design/issues", label: "Замечания", icon: "approvals", badge: "11", badgeWarn: true },
+      { href: "/design/realizability", label: "Реализуемость", icon: "finance" },
+    ],
+  },
+  {
     section: "Организация",
     items: [
       { href: "/employees", label: "Сотрудники", icon: "employees" },
@@ -84,6 +96,13 @@ const TITLES: Record<string, { title: string; sub: string }> = {
   "/personnel/journals": { title: "Журналы прораба", sub: "Обязательные журналы и их состояние" },
   "/personnel/worker": { title: "Карточка работника на объекте", sub: "Табель, начисления, инструктажи, допуски" },
   "/personnel/daily-report": { title: "Ежедневный отчёт прораба", sub: "Численность, объёмы, техника, происшествия" },
+  "/design": { title: "Проектирование и дизайн", sub: "Рабочее пространство проекта и ГИП" },
+  "/design/disciplines": { title: "ГИП — статус разделов", sub: "Комплектность, готовность и проверка" },
+  "/design/brief": { title: "Техническое задание / бриф", sub: "Требования, бюджет и срок" },
+  "/design/concepts": { title: "Концепции и версии", sub: "Дизайн-концепции и обратная связь заказчика" },
+  "/design/specifications": { title: "Спецификации и ведомости", sub: "Материалы, поставщики, аналоги" },
+  "/design/issues": { title: "Реестр замечаний", sub: "Замечания → задачи с ответственными" },
+  "/design/realizability": { title: "Проверка реализуемости", sub: "Наличие, цены, сроки, поставщики" },
   "/employees": { title: "Сотрудники и структура организации", sub: "Кадры и подразделения" },
   "/agents": { title: "ИИ-агенты и их статусы", sub: "Режимы работы и человек в контуре" },
   "/reports": { title: "Отчёты и риски", sub: "Аналитика, KPI и управление рисками" },
