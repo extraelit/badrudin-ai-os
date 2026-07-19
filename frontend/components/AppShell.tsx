@@ -29,6 +29,7 @@ const NAV: NavGroup[] = [
     section: "Основное",
     items: [
       { href: "/dashboard", label: "Панель директора", icon: "dashboard" },
+      { href: "/dashboard/digest", label: "Сводка руководителю", icon: "reports" },
       { href: "/sites", label: "Объекты и проекты", icon: "sites" },
       { href: "/tasks", label: "Задачи и сроки", icon: "tasks", badge: "9", badgeWarn: true },
       { href: "/tasks/control", label: "Контроль исполнения", icon: "approvals" },
@@ -140,6 +141,7 @@ const NAV: NavGroup[] = [
 
 const TITLES: Record<string, { title: string; sub: string }> = {
   "/dashboard": { title: "Панель генерального директора", sub: "Единый центр управления · 19 июля 2026" },
+  "/dashboard/digest": { title: "Управленческая сводка руководителю", sub: "Утренняя и вечерняя сводка на реальных данных: задачи, финансы, снабжение, склад, отчёты, риски" },
   "/sites": { title: "Строительные объекты и проектные работы", sub: "Портфель проектов компании" },
   "/tasks": { title: "Задачи, сроки и просрочки", sub: "Контроль исполнения поручений" },
   "/tasks/control": { title: "Контроль исполнения поручений", sub: "Просрочка, препятствия, вопросы, эскалация, возврат на доработку, уведомления" },
