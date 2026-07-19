@@ -391,6 +391,58 @@ Frontend подключается к API через `frontend/lib/estimatesApi.t
 
 ---
 
+## 5D. Модуль «Снабжение и закупки» (рабочий MVP)
+
+Рабочий контур снабжения и склада (ветка `feat/procurement-supply`) поверх
+существующего каркаса, с переиспользованием поставщиков и материалов
+(`suppliers`/`supplier_products`/`materials`/`units_of_measure`), сравнения КП
+(`quote_comparisons`), согласований (`approvals` R0–R4), документов/сертификатов
+(`documents`/`files`), связи со сметой (`estimate_positions`) и аудита — без
+дублирования сущностей.
+
+### 5D.1. Данные и миграция (`0013_procurement`)
+23 новых таблицы канона §33: склады (`warehouses`, `warehouse_locations`),
+настройки (`procurement_settings`), заявки (`material_requests` + строки),
+запросы цен (`requests_for_quotation`, `rfq_lines`, `rfq_suppliers`,
+`supplier_item_offers`), заказы (`purchase_orders` + строки), резерв
+(`stock_reservations`), поступление (`goods_receipts` + строки с контролем
+качества), остатки и движения (`inventory_balances`, `inventory_transactions`),
+выдача (`material_issues` + строки), перемещение/возврат/списание
+(`stock_transfers`, `material_returns`, `write_off_documents`), инвентаризация
+(`inventory_counts` + строки). Канонические имена §33 (`inventory_items`,
+`measurement_units`) зафиксированы как алиасы к реализованным `materials`,
+`units_of_measure`.
+
+### 5D.2. Правила и уровни риска
+- Складские проводки **идемпотентны** (запрет двойного проведения) и меняют
+  остатки транзакционно; приёмка ≤ заказа; выдача/списание/перемещение ≤ остатка.
+- Согласование — общий контур `approvals`: заявка **R2**, заказ **R3** (крупный —
+  **R4 + MFA**), списание **R3** (крупное/массовое — **R4 + MFA**); пороги и
+  требование MFA настраиваются для организации (`procurement_settings`).
+- Резервирование остатка при подтверждённом заказе.
+- Сертификаты — через `documents`; все действия — в `audit_events`.
+
+### 5D.3. API и права
+`/procurement/*` (22 эндпоинта, RBAC + ABAC): справочники, заявки+утверждение,
+RFQ+сравнение, заказы+решение, поступление+оприходование, склад/остатки, выдача,
+перемещение/возврат/списание, инвентаризация, сводка. Права: `procurement.view`,
+`procurement.manage`, `procurement.approve`, `warehouse.manage`.
+
+### 5D.4. Экраны (7, раздел меню «Снабжение и закупки»)
+1. Сводка снабжения — `/procurement`
+2. Заявки на материалы — `/procurement/requests`
+3. Запросы цен и сравнение КП — `/procurement/rfq`
+4. Заказы поставщикам — `/procurement/orders`
+5. Поступление и входной контроль — `/procurement/receipts`
+6. Склад: остатки и движения — `/procurement/warehouse`
+7. Выдача и инвентаризация — `/procurement/inventory`
+
+Frontend подключается к API через `frontend/lib/procurementApi.ts`; экран сводки
+подмешивает живые данные при доступном backend и откатывается на демонстрационные
+данные без изменения дизайна.
+
+---
+
 ## 6. Интерактивность прототипа
 
 Реализовано без backend, на стороне клиента:
