@@ -17,11 +17,22 @@ from app.models.agent import AgentRun, AIAgent
 from app.models.audit import AuditEvent
 from app.models.content import (
     DailyReport,
+    DailyReportWorkItem,
     Document,
     DocumentVersion,
     File,
     Notification,
 )
+from app.models.estimate import (
+    CommercialOffer,
+    Estimate,
+    EstimateChange,
+    EstimatePosition,
+    PricingSettings,
+    RateItem,
+    UnitOfMeasure,
+)
+from app.models.procurement import QuoteComparison
 from app.models.project import (
     Project,
     ProjectDiscipline,
@@ -113,4 +124,13 @@ __all__ = [
     "DesignSpecification",
     "MarketAvailabilityCheck",
     "DesignIssue",
+    "DailyReportWorkItem",
+    "UnitOfMeasure",
+    "RateItem",
+    "PricingSettings",
+    "Estimate",
+    "EstimatePosition",
+    "EstimateChange",
+    "CommercialOffer",
+    "QuoteComparison",
 ]
