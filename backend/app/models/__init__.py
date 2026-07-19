@@ -24,9 +24,22 @@ from app.models.content import (
 )
 from app.models.project import (
     Project,
+    ProjectDiscipline,
     ProjectLocation,
     ProjectMember,
+    ProjectMilestone,
     Site,
+)
+from app.models.design import (
+    Counterparty,
+    DesignBrief,
+    DesignConcept,
+    DesignIssue,
+    DesignSpecification,
+    MarketAvailabilityCheck,
+    Material,
+    Supplier,
+    SupplierProduct,
 )
 from app.models.personnel import (
     DailyReportHeadcount,
@@ -89,4 +102,15 @@ __all__ = [
     "ForemanJournal",
     "DailyReportHeadcount",
     "DailyReportIssue",
+    "ProjectMilestone",
+    "ProjectDiscipline",
+    "Counterparty",
+    "Supplier",
+    "Material",
+    "SupplierProduct",
+    "DesignBrief",
+    "DesignConcept",
+    "DesignSpecification",
+    "MarketAvailabilityCheck",
+    "DesignIssue",
 ]

@@ -79,6 +79,52 @@ class ProjectMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     status: Mapped[str] = mapped_column(String(32), default="active")
 
 
+class ProjectMilestone(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
+    """Контрольные точки проекта (DATABASE.md раздел 6.3)."""
+
+    __tablename__ = "project_milestones"
+
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
+    name: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    planned_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    actual_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="planned")
+    weight: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class ProjectDiscipline(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
+    """Раздел/дисциплина проекта и статус проверки ГИП.
+
+    Лёгкая сущность (решение владельца): не дублирует `project_milestones` и
+    `tasks`, а связывает их — веха через `milestone_id`, задания разделу — через
+    `tasks` (`source_type='project_discipline'`, `source_id=discipline.id`).
+    """
+
+    __tablename__ = "project_disciplines"
+
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
+    milestone_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("project_milestones.id"), nullable=True
+    )
+    code: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    name: Mapped[str] = mapped_column(String(255))
+    # architecture | structural | water_supply | sewerage | networks |
+    # general_plan | electrical | hvac | interior | estimate | other
+    discipline_type: Mapped[str] = mapped_column(String(32), default="other")
+    responsible_employee_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("employees.id"), nullable=True
+    )
+    planned_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    completion_percent: Mapped[int] = mapped_column(Integer, default=0)
+    # pending | in_review | checked | rejected — статус проверки ГИП
+    gip_status: Mapped[str] = mapped_column(String(32), default="pending")
+    # active | issued | on_hold | cancelled — статус выпуска раздела
+    status: Mapped[str] = mapped_column(String(32), default="active")
+    notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+
 class ProjectLocation(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "project_locations"
 
