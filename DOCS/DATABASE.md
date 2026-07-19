@@ -1711,6 +1711,11 @@ status
 
 ### 16.5. Таблица `invoices`
 
+Счета к оплате. Реализована в модуле «Финансы и бюджеты» (миграция
+0016_finance_payments). Связывается с договором, обязательством и статьёй
+бюджета; файл счёта — через `documents`. `paid_amount`/`payment_status`
+пересчитываются сервисом по мере регистрации платежей.
+
 Основные поля:
 
 ```text
@@ -1719,37 +1724,57 @@ organization_id
 project_id
 counterparty_id
 contract_id
+commitment_id
+budget_line_id
+document_id
 invoice_number
 invoice_date
 due_date
 amount
 vat_amount
+paid_amount
 currency
+status
 payment_status
-document_id
+responsible_employee_id
+notes
 ```
+
+`status`: `draft | registered | cancelled`; `payment_status`:
+`unpaid | partially_paid | paid`.
 
 ### 16.6. Таблица `payment_requests`
 
-Назначение: заявка на оплату и маршрут согласования.
+Заявка на оплату счёта и маршрут согласования. Реализована в 0016. Согласование
+через общий контур `approvals`: R3, крупная сумма — R4 + MFA (порог организации
+`finance_settings`). Согласованная заявка — основание для ручной фиксации платежа.
 
 Основные поля:
 
 ```text
 id
+organization_id
 invoice_id
+project_id
+amount
+currency
 requested_by
-requested_at
 planned_payment_date
 priority
 justification
-approval_id
 status
+risk_level
+approval_id
 ```
+
+`status`: `pending | approved | rejected | paid | cancelled`.
 
 ### 16.7. Таблица `payments`
 
-Назначение: отражение статуса платежа, полученного из бухгалтерской или банковской системы.
+Отражение платежа. Реализована в 0016. Система **не выполняет банковских
+операций** (решение владельца): платёж фиксируется вручную либо импортируется из
+бухгалтерии. Повторный ручной ввод идемпотентен по `idempotency_key` — оплата не
+задваивается.
 
 Основные поля:
 
@@ -1759,15 +1784,27 @@ organization_id
 project_id
 counterparty_id
 invoice_id
+payment_request_id
 payment_date
 amount
 currency
 payment_direction
+method
 external_transaction_id
+idempotency_key
 status
+recorded_by
+notes
 ```
 
-ИИ-агенты не должны самостоятельно создавать банковские операции. Они могут подготовить заявку и контролировать её согласование.
+`status`: `recorded | reconciled | cancelled`; `method`:
+`manual | accounting_import`.
+
+ИИ-агенты не должны самостоятельно создавать банковские операции. Они могут
+подготовить заявку и контролировать её согласование. Финансовая сводка проекта
+(управленческий контур: бюджет/обязательства/факт) и регистр к оплате AP
+(`payables-summary`: выставлено/согласовано/оплачено/остаток) — раздельные
+представления; факт по счетам не дублирует управленческий факт.
 
 ---
 

@@ -307,3 +307,106 @@ def test_export_csv_and_json(db_engine, db_session) -> None:
     json_r = client.get(f"/finance/projects/{project.id}/financial-summary/export?format=json")
     assert json_r.status_code == 200
     assert json_r.json()["currency"] == "RUB"
+
+
+# =============== Счета, заявки на оплату, платежи (§16.5–16.7) =========== #
+
+APAY = ["finance.view", "invoice.manage", "payment.request", "payment.approve"]
+
+
+def _counterparty(db, org):
+    cp = Counterparty(organization_id=org.id, name="Подрядчик", counterparty_type="contractor")
+    db.add(cp)
+    db.commit()
+    return cp
+
+
+def _registered_invoice(client, project_id, cp_id, amount=500000):
+    inv = client.post(f"/finance/projects/{project_id}/invoices", json={
+        "counterparty_id": str(cp_id), "amount": amount, "invoice_number": "СЧ-1",
+    })
+    assert inv.status_code == 201
+    iid = inv.json()["id"]
+    assert client.post(f"/finance/invoices/{iid}/register").json()["status"] == "registered"
+    return iid
+
+
+def test_invoice_requires_permission(db_engine, db_session) -> None:
+    org, project, _, user, _ = _make(db_session, perms=["finance.view"])
+    cp = _counterparty(db_session, org)
+    client = _client(db_engine, user)
+    r = client.post(f"/finance/projects/{project.id}/invoices",
+                    json={"counterparty_id": str(cp.id), "amount": 1000})
+    assert r.status_code == 403
+
+
+def test_invoice_payment_request_r3_flow(db_engine, db_session) -> None:
+    org, project, _, user, _ = _make(db_session, perms=APAY)
+    cp = _counterparty(db_session, org)
+    client = _client(db_engine, user)
+    iid = _registered_invoice(client, project.id, cp.id, amount=500000)
+    pr = client.post(f"/finance/invoices/{iid}/payment-requests", json={"justification": "оплата работ"})
+    assert pr.status_code == 201
+    assert pr.json()["risk_level"] == "R3"
+    assert pr.json()["amount"] == "500000.00"
+    prid = pr.json()["id"]
+    dec = client.post(f"/finance/payment-requests/{prid}/decision", json={"decision": "approved"})
+    assert dec.status_code == 200 and dec.json()["status"] == "approved"
+    pay = client.post(f"/finance/payment-requests/{prid}/payments", json={})
+    assert pay.status_code == 201 and pay.json()["status"] == "recorded"
+    # счёт полностью оплачен
+    inv = [i for i in client.get(f"/finance/projects/{project.id}/invoices").json() if i["id"] == iid][0]
+    assert inv["payment_status"] == "paid"
+    assert inv["paid_amount"] == "500000.00"
+
+
+def test_large_payment_request_r4_requires_mfa(db_engine, db_session) -> None:
+    org, project, _, user, secret = _make(db_session, perms=APAY, mfa=True, low_threshold=True)
+    cp = _counterparty(db_session, org)
+    client = _client(db_engine, user)
+    iid = _registered_invoice(client, project.id, cp.id, amount=5000)
+    prid = client.post(f"/finance/invoices/{iid}/payment-requests", json={}).json()["id"]
+    denied = client.post(f"/finance/payment-requests/{prid}/decision", json={"decision": "approved"})
+    assert denied.status_code == 401
+    import pyotp as _p
+    ok = client.post(f"/finance/payment-requests/{prid}/decision",
+                     json={"decision": "approved", "mfa_code": _p.TOTP(secret).now()})
+    assert ok.status_code == 200 and ok.json()["status"] == "approved"
+
+
+def test_payment_request_exceeds_outstanding_rejected(db_engine, db_session) -> None:
+    org, project, _, user, _ = _make(db_session, perms=APAY)
+    cp = _counterparty(db_session, org)
+    client = _client(db_engine, user)
+    iid = _registered_invoice(client, project.id, cp.id, amount=100000)
+    over = client.post(f"/finance/invoices/{iid}/payment-requests", json={"amount": 150000})
+    assert over.status_code == 422
+
+
+def test_payment_idempotency(db_engine, db_session) -> None:
+    org, project, _, user, _ = _make(db_session, perms=APAY)
+    cp = _counterparty(db_session, org)
+    client = _client(db_engine, user)
+    iid = _registered_invoice(client, project.id, cp.id, amount=200000)
+    prid = client.post(f"/finance/invoices/{iid}/payment-requests", json={"amount": 100000}).json()["id"]
+    client.post(f"/finance/payment-requests/{prid}/decision", json={"decision": "approved"})
+    p1 = client.post(f"/finance/payment-requests/{prid}/payments", json={"amount": 100000, "idempotency_key": "K1"})
+    p2 = client.post(f"/finance/payment-requests/{prid}/payments", json={"amount": 100000, "idempotency_key": "K1"})
+    assert p1.json()["id"] == p2.json()["id"]  # повтор не создаёт дубликат
+    inv = [i for i in client.get(f"/finance/projects/{project.id}/invoices").json() if i["id"] == iid][0]
+    assert inv["paid_amount"] == "100000.00"  # оплата не задвоена
+    assert inv["payment_status"] == "partially_paid"
+
+
+def test_payables_summary(db_engine, db_session) -> None:
+    org, project, _, user, _ = _make(db_session, perms=APAY)
+    cp = _counterparty(db_session, org)
+    client = _client(db_engine, user)
+    iid = _registered_invoice(client, project.id, cp.id, amount=300000)
+    prid = client.post(f"/finance/invoices/{iid}/payment-requests", json={"amount": 120000}).json()["id"]
+    client.post(f"/finance/payment-requests/{prid}/decision", json={"decision": "approved"})
+    client.post(f"/finance/payment-requests/{prid}/payments", json={"amount": 120000})
+    s = client.get(f"/finance/projects/{project.id}/payables-summary").json()
+    assert s["invoiced_total"] == "300000.00"
+    assert s["paid_total"] == "120000.00"
+    assert s["outstanding"] == "180000.00"

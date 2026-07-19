@@ -66,3 +66,18 @@ export const financeApi = {
   exportSummary: (projectId: string, format: "csv" | "json") =>
     `${API_BASE}/finance/projects/${projectId}/financial-summary/export?format=${format}`,
 };
+
+export const financePaymentsApi = {
+  listInvoices: (projectId: string) => api<unknown[]>(`/finance/projects/${projectId}/invoices`),
+  registerInvoice: (invoiceId: string) =>
+    api<unknown>(`/finance/invoices/${invoiceId}/register`, { method: "POST" }),
+  createPaymentRequest: (invoiceId: string, body: Record<string, unknown>) =>
+    api<unknown>(`/finance/invoices/${invoiceId}/payment-requests`, { method: "POST", body: JSON.stringify(body) }),
+  listPaymentRequests: (projectId: string) => api<unknown[]>(`/finance/projects/${projectId}/payment-requests`),
+  decidePaymentRequest: (prId: string, decision: "approved" | "rejected", mfaCode?: string) =>
+    api<unknown>(`/finance/payment-requests/${prId}/decision`, { method: "POST", body: JSON.stringify({ decision, mfa_code: mfaCode }) }),
+  recordPayment: (prId: string, body: Record<string, unknown>) =>
+    api<unknown>(`/finance/payment-requests/${prId}/payments`, { method: "POST", body: JSON.stringify(body) }),
+  listPayments: (projectId: string) => api<unknown[]>(`/finance/projects/${projectId}/payments`),
+  getPayablesSummary: (projectId: string) => api<unknown>(`/finance/projects/${projectId}/payables-summary`),
+};

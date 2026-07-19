@@ -144,3 +144,64 @@ export const commitments: CommitmentRow[] = [
   { id: "Д-2201", description: "Субподряд: земляные работы", counterparty: "ООО «ГрунтСтрой»", amount: "700 000,00", origin: "Договор", originTone: "navy", due: "10.08.2026", status: "Активен", statusTone: "emerald", risk: "R3" },
   { id: "ОБ-118", description: "Аренда офиса на объекте", counterparty: "ИП Салихов", amount: "300 000,00", origin: "Ручное", originTone: "gray", due: "01.09.2026", status: "Открыто", statusTone: "amber", risk: "R3" },
 ];
+
+// -------------------- Счета, заявки на оплату, платежи ------------------- //
+
+export interface InvoiceRow {
+  id: string;
+  number: string;
+  counterparty: string;
+  amount: string;
+  paid: string;
+  due: string;
+  status: string;
+  statusTone: Tone;
+  paymentStatus: string;
+  paymentTone: Tone;
+}
+
+export const invoices: InvoiceRow[] = [
+  { id: "СЧ-4021", number: "№ 214 от 12.07", counterparty: "ТД «ПолимерСнаб»", amount: "2 100 000,00", paid: "2 100 000,00", due: "24.07.2026", status: "Зарегистрирован", statusTone: "navy", paymentStatus: "Оплачен", paymentTone: "emerald" },
+  { id: "СЧ-4025", number: "№ 77 от 15.07", counterparty: "ООО «ГрунтСтрой»", amount: "700 000,00", paid: "300 000,00", due: "05.08.2026", status: "Зарегистрирован", statusTone: "navy", paymentStatus: "Частично", paymentTone: "amber" },
+  { id: "СЧ-4030", number: "№ 5 от 18.07", counterparty: "ИП Салихов", amount: "300 000,00", paid: "0,00", due: "01.09.2026", status: "Черновик", statusTone: "gray", paymentStatus: "Не оплачен", paymentTone: "red" },
+];
+
+export interface PayRequestRow {
+  id: string;
+  invoice: string;
+  counterparty: string;
+  amount: string;
+  planned: string;
+  status: string;
+  statusTone: Tone;
+  risk: RiskLevel;
+}
+
+export const payRequests: PayRequestRow[] = [
+  { id: "ЗО-901", invoice: "СЧ-4025", counterparty: "ООО «ГрунтСтрой»", amount: "400 000,00", planned: "30.07.2026", status: "На согласовании", statusTone: "amber", risk: "R3" },
+  { id: "ЗО-898", invoice: "СЧ-4021", counterparty: "ТД «ПолимерСнаб»", amount: "2 100 000,00", planned: "22.07.2026", status: "Оплачена", statusTone: "emerald", risk: "R4" },
+  { id: "ЗО-895", invoice: "СЧ-4030", counterparty: "ИП Салихов", amount: "300 000,00", planned: "28.08.2026", status: "Согласована", statusTone: "navy", risk: "R3" },
+];
+
+export interface PaymentRow {
+  id: string;
+  invoice: string;
+  counterparty: string;
+  amount: string;
+  date: string;
+  method: string;
+  status: string;
+  statusTone: Tone;
+}
+
+export const payments: PaymentRow[] = [
+  { id: "ПЛ-5501", invoice: "СЧ-4021", counterparty: "ТД «ПолимерСнаб»", amount: "2 100 000,00", date: "22.07.2026", method: "Ручной ввод", status: "Проведён", statusTone: "emerald" },
+  { id: "ПЛ-5504", invoice: "СЧ-4025", counterparty: "ООО «ГрунтСтрой»", amount: "300 000,00", date: "24.07.2026", method: "Ручной ввод", status: "Проведён", statusTone: "emerald" },
+];
+
+export const payables = {
+  invoiced: "3 100 000,00",
+  approved: "700 000,00",
+  paid: "2 400 000,00",
+  outstanding: "700 000,00",
+};
