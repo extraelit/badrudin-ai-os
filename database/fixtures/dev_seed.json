@@ -18,6 +18,12 @@
     { "code": "task.approve" },
     { "code": "task.assign" },
     { "code": "finance.view" },
-    { "code": "audit.view" }
+    { "code": "audit.view" },
+    { "code": "personnel.view" },
+    { "code": "personnel.manage" },
+    { "code": "payroll.view" },
+    { "code": "payroll.manage" },
+    { "code": "payroll.approve" },
+    { "code": "safety.manage" }
   ]
 }
