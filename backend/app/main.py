@@ -23,6 +23,7 @@ from app.api import (
     inventory,
     personnel,
     procurement,
+    task_control,
 )
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
@@ -52,6 +53,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(auth.router)
     app.include_router(core.router)
+    app.include_router(task_control.router)
     app.include_router(personnel.router)
     app.include_router(design.router)
     app.include_router(estimates.router)
