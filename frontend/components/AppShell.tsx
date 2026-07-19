@@ -137,6 +137,7 @@ const NAV: NavGroup[] = [
     items: [
       { href: "/employees", label: "Сотрудники", icon: "employees" },
       { href: "/agents", label: "ИИ-агенты", icon: "agents" },
+      { href: "/integrations", label: "Интеграции и рассылки", icon: "documents" },
       { href: "/risks", label: "Реестр рисков", icon: "approvals" },
       { href: "/reports", label: "Отчёты и риски", icon: "reports" },
     ],
@@ -207,6 +208,7 @@ const TITLES: Record<string, { title: string; sub: string }> = {
   "/estimates/changes": { title: "Изменения сметы", sub: "Версии, change order, причины изменений" },
   "/employees": { title: "Сотрудники и структура организации", sub: "Кадры и подразделения" },
   "/agents": { title: "Оркестратор ИИ-агентов", sub: "Реестр агентов, запуски и предложения под утверждением человека" },
+  "/integrations": { title: "Масштабирование интеграций", sub: "Реестр коннекторов и исходящие сообщения — черновики на утверждение, без отправки" },
   "/risks": { title: "Реестр рисков", sub: "Идентификация, оценка (вероятность × влияние), снижение и принятие рисков" },
   "/reports": { title: "Отчёты и риски", sub: "Аналитика, KPI и управление рисками" },
   "/settings": { title: "Настройки", sub: "Профиль, доступ, интеграции" },
