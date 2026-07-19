@@ -16,6 +16,7 @@ from app.schemas.auth import (
     MFAVerifyRequest,
     TokenResponse,
 )
+from app.services.access import get_permission_codes, get_role_codes
 from app.services.audit import record_event
 from app.services.auth import AuthError, authenticate, verify_totp
 
@@ -57,8 +58,18 @@ def logout(authorization: str | None = Header(default=None)) -> dict[str, str]:
 
 
 @router.get("/me", response_model=CurrentUser)
-def me(current: User = Depends(get_current_user)) -> CurrentUser:
-    return CurrentUser(id=str(current.id), email=current.email, status=current.status)
+def me(
+    current: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> CurrentUser:
+    # Роли и права нужны интерфейсу для отображения доступных действий (RBAC
+    # проверяется на сервере; в UI — только для скрытия/показа элементов).
+    roles = get_role_codes(db, current.id)
+    permissions = get_permission_codes(db, current.id)
+    return CurrentUser(
+        id=str(current.id), email=current.email, status=current.status,
+        roles=sorted(roles), permissions=sorted(permissions),
+    )
 
 
 @router.post("/mfa/verify")
