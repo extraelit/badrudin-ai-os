@@ -1,50 +1,93 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-// Базовый URL backend берётся из переменной окружения (D-008)
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
-
-type HealthStatus = "проверка…" | "доступен" | "недоступен";
+/*
+ * Демонстрационный экран входа (UX/UI-прототип).
+ * Аутентификация не выполняется: кнопка ведёт в демо-интерфейс с mock-данными.
+ * Реальные учётные данные, секреты и подключение к production отсутствуют.
+ */
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function LoginPage() {
-  const [backendStatus, setBackendStatus] = useState<HealthStatus>("проверка…");
+  const router = useRouter();
+  const [email, setEmail] = useState("director@extra-elit.demo");
+  const [password, setPassword] = useState("demo-2026");
 
-  useEffect(() => {
-    // Запрос health-check backend (T-1.A4)
-    fetch(`${API_BASE_URL}/health`)
-      .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
-      .then(() => setBackendStatus("доступен"))
-      .catch(() => setBackendStatus("недоступен"));
-  }, []);
+  function enter(e: React.FormEvent) {
+    e.preventDefault();
+    router.push("/dashboard");
+  }
 
   return (
-    <main style={{ maxWidth: 360, margin: "80px auto", fontFamily: "sans-serif" }}>
-      <h1>Badrudin AI OS</h1>
-      <p>Вход в систему</p>
+    <div className="login">
+      <div className="login__side">
+        <div className="login__brand">
+          <div className="login__logo">B</div>
+          <div>
+            <div className="login__brand-title">Badrudin AI OS</div>
+            <div className="login__brand-sub">ООО «Экстра-Элит»</div>
+          </div>
+        </div>
+        <div className="login__hero">
+          <h2>Единый цифровой центр управления компанией</h2>
+          <p>
+            Объекты, задачи, финансы, снабжение, документы и ИИ-агенты — в одном
+            интерфейсе. Человек принимает окончательное решение.
+          </p>
+          <ul className="login__list">
+            <li>Согласование критических действий по шкале R0–R4</li>
+            <li>Контроль сроков и просрочек в реальном времени</li>
+            <li>ИИ готовит — руководитель утверждает</li>
+          </ul>
+        </div>
+        <div className="login__foot">
+          Демонстрационная версия · показ интерфейса на mock-данных
+        </div>
+      </div>
 
-      {/* Заглушка формы входа; аутентификация реализуется в задаче T-1.C1 */}
-      <form onSubmit={(e) => e.preventDefault()}>
-        <label>
-          Электронная почта
-          <input type="email" name="email" autoComplete="username" disabled />
-        </label>
-        <label>
-          Пароль
-          <input
-            type="password"
-            name="password"
-            autoComplete="current-password"
-            disabled
-          />
-        </label>
-        <button type="submit" disabled>
-          Войти (доступно после T-1.C1)
-        </button>
-      </form>
+      <div className="login__main">
+        <form className="login__form" onSubmit={enter}>
+          <h1>Вход в систему</h1>
+          <p className="muted" style={{ marginTop: 4, marginBottom: 22 }}>
+            Введите рабочую учётную запись
+          </p>
 
-      <p>Состояние backend: {backendStatus}</p>
-    </main>
+          <div className="field">
+            <label>Электронная почта</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="username"
+            />
+          </div>
+          <div className="field">
+            <label>Пароль</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+            />
+          </div>
+
+          <div className="row row--between" style={{ margin: "6px 0 20px" }}>
+            <label className="row" style={{ gap: 8, fontSize: 13 }}>
+              <input type="checkbox" defaultChecked /> Запомнить меня
+            </label>
+            <span className="link-more">Забыли пароль?</span>
+          </div>
+
+          <button type="submit" className="btn btn--primary" style={{ width: "100%", justifyContent: "center" }}>
+            Войти в систему
+          </button>
+
+          <div className="login__note">
+            Демо-режим: аутентификация и production не подключены. Кнопка
+            открывает интерфейс с демонстрационными данными.
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
