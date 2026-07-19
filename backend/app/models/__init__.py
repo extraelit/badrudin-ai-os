@@ -96,6 +96,9 @@ from app.models.finance import (
     ExpenseCategory,
     FinanceSettings,
     FinancialCommitment,
+    Invoice,
+    Payment,
+    PaymentRequest,
 )
 from app.models.personnel import (
     DailyReportHeadcount,
@@ -217,4 +220,7 @@ __all__ = [
     "Budget",
     "BudgetLine",
     "FinancialCommitment",
+    "Invoice",
+    "PaymentRequest",
+    "Payment",
 ]

@@ -190,3 +190,122 @@ class FinancialCommitment(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, 
     approval_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("approvals.id"), nullable=True
     )
+
+
+# ------------------- Счета, заявки на оплату, платежи -------------------- #
+
+
+class Invoice(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
+    """Счёт на оплату (DATABASE.md раздел 16.5).
+
+    Формируется из договора/обязательства/заказа или вручную. Файл счёта —
+    через `documents`. Сумма к оплате уменьшается по мере регистрации платежей
+    (`paid_amount`), статус оплаты пересчитывается сервисом.
+    """
+
+    __tablename__ = "invoices"
+
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("organizations.id")
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
+    counterparty_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("counterparties.id")
+    )
+    contract_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("contracts.id"), nullable=True
+    )
+    commitment_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("financial_commitments.id"), nullable=True
+    )
+    budget_line_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("budget_lines.id"), nullable=True
+    )
+    document_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("documents.id"), nullable=True
+    )
+    invoice_number: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    invoice_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), default=0)
+    vat_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), default=0)
+    currency: Mapped[str] = mapped_column(String(3), default="RUB")
+    paid_amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), default=0)
+    # draft | registered | cancelled — жизненный цикл счёта
+    status: Mapped[str] = mapped_column(String(16), default="draft")
+    # unpaid | partially_paid | paid — статус оплаты
+    payment_status: Mapped[str] = mapped_column(String(16), default="unpaid")
+    responsible_employee_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("employees.id"), nullable=True
+    )
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class PaymentRequest(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """Заявка на оплату счёта и маршрут согласования (DATABASE.md раздел 16.6).
+
+    Согласование — R3, крупная сумма — R4 + MFA. Система не проводит платёж:
+    после согласования платёж фиксируется вручную (`payments`).
+    """
+
+    __tablename__ = "payment_requests"
+
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("organizations.id")
+    )
+    invoice_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("invoices.id"))
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
+    amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), default=0)
+    currency: Mapped[str] = mapped_column(String(3), default="RUB")
+    requested_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    planned_payment_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    priority: Mapped[str] = mapped_column(String(16), default="normal")
+    justification: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # pending | approved | rejected | paid | cancelled
+    status: Mapped[str] = mapped_column(String(16), default="pending")
+    risk_level: Mapped[str] = mapped_column(String(2), default="R0")
+    approval_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("approvals.id"), nullable=True
+    )
+
+
+class Payment(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """Отражение платежа (DATABASE.md раздел 16.7).
+
+    Система не выполняет банковских операций (решение владельца): платёж
+    фиксируется вручную либо импортируется из бухгалтерии. Идемпотентность
+    ручного ввода — по `idempotency_key`.
+    """
+
+    __tablename__ = "payments"
+
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("organizations.id")
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
+    counterparty_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("counterparties.id"), nullable=True
+    )
+    invoice_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("invoices.id"), nullable=True
+    )
+    payment_request_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("payment_requests.id"), nullable=True
+    )
+    payment_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    amount: Mapped[Decimal] = mapped_column(Numeric(18, 2), default=0)
+    currency: Mapped[str] = mapped_column(String(3), default="RUB")
+    # outgoing | incoming
+    payment_direction: Mapped[str] = mapped_column(String(16), default="outgoing")
+    # manual | accounting_import — источник записи (не банковская операция)
+    method: Mapped[str] = mapped_column(String(32), default="manual")
+    external_transaction_id: Mapped[str | None] = mapped_column(
+        String(255), nullable=True
+    )
+    idempotency_key: Mapped[str | None] = mapped_column(
+        String(128), nullable=True, unique=True
+    )
+    # recorded | reconciled | cancelled
+    status: Mapped[str] = mapped_column(String(16), default="recorded")
+    recorded_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
