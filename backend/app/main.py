@@ -19,6 +19,7 @@ from app.api import (
     estimates,
     finance,
     health,
+    inventory,
     personnel,
     procurement,
 )
@@ -54,6 +55,7 @@ def create_app() -> FastAPI:
     app.include_router(design.router)
     app.include_router(estimates.router)
     app.include_router(procurement.router)
+    app.include_router(inventory.router)
     app.include_router(crm.router)
     app.include_router(finance.router)
     app.include_router(accountable.router)
