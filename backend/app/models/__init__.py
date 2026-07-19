@@ -118,6 +118,16 @@ from app.models.personnel import (
     WorkPermit,
     WorkShift,
 )
+from app.models.equipment import (
+    Equipment,
+    EquipmentAssignment,
+    EquipmentInspection,
+    EquipmentUsageLog,
+    FuelTransaction,
+    MaintenanceOrder,
+    Tool,
+    ToolAssignment,
+)
 from app.models.field_report import DailyReportEquipment, DailyReportFile
 from app.models.rbac import Permission, Role, RolePermission, UserRole
 from app.models.task import (
@@ -171,6 +181,14 @@ __all__ = [
     "DailyReportIssue",
     "DailyReportEquipment",
     "DailyReportFile",
+    "Equipment",
+    "EquipmentAssignment",
+    "EquipmentUsageLog",
+    "EquipmentInspection",
+    "MaintenanceOrder",
+    "FuelTransaction",
+    "Tool",
+    "ToolAssignment",
     "ProjectMilestone",
     "ProjectDiscipline",
     "Counterparty",
