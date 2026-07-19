@@ -40,8 +40,11 @@ class RequestLineIn(BaseModel):
 class RequestIn(BaseModel):
     site_id: uuid.UUID | None = None
     location_id: uuid.UUID | None = None
+    task_id: uuid.UUID | None = None
+    responsible_employee_id: uuid.UUID | None = None
     number: str | None = None
     priority: str = "normal"
+    is_critical: bool = False
     needed_by: date | None = None
     reason: str | None = None
     lines: list[RequestLineIn] = Field(default_factory=list)
@@ -50,11 +53,98 @@ class RequestIn(BaseModel):
 class RequestOut(BaseModel):
     id: uuid.UUID
     project_id: uuid.UUID
+    site_id: uuid.UUID | None = None
+    task_id: uuid.UUID | None = None
     number: str | None
     status: str
     priority: str
+    is_critical: bool = False
+    risk_level: str = "R0"
+    needed_by: date | None = None
     lines_count: int
     approval_id: uuid.UUID | None
+
+
+class RequestLineOut(BaseModel):
+    id: uuid.UUID
+    material_id: uuid.UUID | None
+    description: str | None
+    quantity: str
+    reserved_quantity: str
+    issued_quantity: str
+    returned_quantity: str
+    status: str
+
+
+class RequestDetailOut(RequestOut):
+    reason: str | None = None
+    rejection_reason: str | None = None
+    lines: list[RequestLineOut] = Field(default_factory=list)
+
+
+# ---- Жизненный цикл заявки: резерв, выдача, подтверждение, возврат ---- #
+
+
+class ReserveIn(BaseModel):
+    warehouse_id: uuid.UUID
+
+
+class IssueItemIn(BaseModel):
+    request_line_id: uuid.UUID
+    quantity: float = Field(gt=0)
+
+
+class IssueRequestIn(BaseModel):
+    warehouse_id: uuid.UUID
+    issued_to: uuid.UUID | None = None
+    number: str | None = None
+    evidence_document_id: uuid.UUID | None = None
+    evidence_file_id: uuid.UUID | None = None
+    items: list[IssueItemIn] = Field(default_factory=list)
+
+
+class AcknowledgeIn(BaseModel):
+    confirmed: bool = True
+    employee_id: uuid.UUID | None = None
+    reason: str | None = None
+    evidence_document_id: uuid.UUID | None = None
+    evidence_file_id: uuid.UUID | None = None
+
+
+class RequestReturnIn(BaseModel):
+    warehouse_id: uuid.UUID
+    material_id: uuid.UUID
+    quantity: float = Field(gt=0)
+    request_line_id: uuid.UUID | None = None
+    issue_id: uuid.UUID | None = None
+    number: str | None = None
+    reason: str | None = None
+
+
+class ConfirmReturnIn(BaseModel):
+    employee_id: uuid.UUID | None = None
+    evidence_document_id: uuid.UUID | None = None
+
+
+class IssueDetailOut(BaseModel):
+    id: uuid.UUID
+    warehouse_id: uuid.UUID
+    material_request_id: uuid.UUID | None
+    number: str | None
+    status: str
+    acknowledgement_status: str
+    acknowledged_by: uuid.UUID | None
+    lines_count: int
+
+
+class ReturnOut(BaseModel):
+    id: uuid.UUID
+    material_id: uuid.UUID
+    quantity: str
+    return_type: str
+    status: str
+    material_request_id: uuid.UUID | None
+    confirmed_by: uuid.UUID | None
 
 
 # ------------------------- Запросы цен (RFQ) ----------------------------- #
