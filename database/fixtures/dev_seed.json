@@ -70,12 +70,14 @@
       "approval.view", "approval.decide",
       "daily_report.view", "daily_report.manage", "daily_report.approve",
       "audit.view", "finance.view", "budget.view", "personnel.view",
-      "procurement.view", "estimate.view", "crm.view",
+      "procurement.view", "procurement.manage", "procurement.approve",
+      "warehouse.manage", "estimate.view", "crm.view",
       "accountable.view", "accountable.manage", "accountable.approve"
     ],
     "foreman": [
       "project.view", "site.manage", "task.view", "task.execute",
       "daily_report.view", "daily_report.manage",
+      "procurement.view", "procurement.manage",
       "accountable.view", "accountable.manage"
     ],
     "accountant": [

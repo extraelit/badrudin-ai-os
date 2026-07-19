@@ -45,23 +45,32 @@ from app.models import (
     WriteOffDocument,
 )
 from app.schemas.procurement import (
+    AcknowledgeIn,
     BalanceOut,
     ComparisonOut,
+    ConfirmReturnIn,
     CountIn,
     CountOut,
     DecisionIn,
     DocStatusOut,
+    IssueDetailOut,
     IssueIn,
     IssueOut,
+    IssueRequestIn,
     OfferIn,
     OrderIn,
     OrderOut,
     ProcurementSummary,
     ReceiptIn,
     ReceiptOut,
+    RequestDetailOut,
     RequestIn,
+    RequestLineOut,
     RequestOut,
+    ReserveIn,
     ReturnIn,
+    RequestReturnIn,
+    ReturnOut,
     RfqIn,
     RfqOut,
     TransferIn,
@@ -130,6 +139,24 @@ def create_warehouse(
 # ------------------------------- Заявки ---------------------------------- #
 
 
+def _request_out(db: Session, r: MaterialRequest) -> RequestOut:
+    return RequestOut(
+        id=r.id, project_id=r.project_id, site_id=r.site_id, task_id=r.task_id,
+        number=r.number, status=r.status, priority=r.priority,
+        is_critical=r.is_critical, risk_level=r.risk_level, needed_by=r.needed_by,
+        approval_id=r.approval_id,
+        lines_count=_count_lines(db, MaterialRequestLine, MaterialRequestLine.material_request_id, r.id),
+    )
+
+
+def _get_request(db: Session, user: User, request_id: uuid.UUID) -> MaterialRequest:
+    req = db.get(MaterialRequest, request_id)
+    if req is None or req.deleted_at is not None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Заявка не найдена")
+    _project(db, user, req.project_id)
+    return req
+
+
 @router.get("/projects/{project_id}/requests", response_model=list[RequestOut])
 def list_requests(
     project_id: uuid.UUID,
@@ -145,12 +172,7 @@ def list_requests(
             )
         ).scalars()
     )
-    return [
-        RequestOut(id=r.id, project_id=r.project_id, number=r.number, status=r.status,
-                   priority=r.priority, approval_id=r.approval_id,
-                   lines_count=_count_lines(db, MaterialRequestLine, MaterialRequestLine.material_request_id, r.id))
-        for r in rows
-    ]
+    return [_request_out(db, r) for r in rows]
 
 
 @router.post("/projects/{project_id}/requests", response_model=RequestOut, status_code=status.HTTP_201_CREATED)
@@ -163,10 +185,12 @@ def create_request(
     project = _project(db, user, project_id)
     req = MaterialRequest(
         organization_id=project.organization_id, project_id=project_id,
-        site_id=payload.site_id, location_id=payload.location_id, number=payload.number,
+        site_id=payload.site_id, location_id=payload.location_id,
+        task_id=payload.task_id,
+        responsible_employee_id=payload.responsible_employee_id, number=payload.number,
         requested_by=user.employee_id, priority=payload.priority,
-        needed_by=payload.needed_by, reason=payload.reason, status="submitted",
-        created_by=user.id,
+        is_critical=payload.is_critical, needed_by=payload.needed_by,
+        reason=payload.reason, status="draft", created_by=user.id,
     )
     db.add(req)
     db.flush()
@@ -181,8 +205,81 @@ def create_request(
                      entity_type="material_request", entity_id=req.id,
                      new_values={"number": req.number}, commit=False)
     db.commit()
-    return RequestOut(id=req.id, project_id=req.project_id, number=req.number, status=req.status,
-                      priority=req.priority, approval_id=req.approval_id, lines_count=len(payload.lines))
+    return _request_out(db, req)
+
+
+@router.get("/requests/{request_id}", response_model=RequestDetailOut)
+def get_request(
+    request_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission("procurement.view")),
+) -> RequestDetailOut:
+    req = _get_request(db, user, request_id)
+    lines = list(
+        db.execute(
+            select(MaterialRequestLine).where(
+                MaterialRequestLine.material_request_id == req.id
+            )
+        ).scalars()
+    )
+    base = _request_out(db, req)
+    return RequestDetailOut(
+        **base.model_dump(), reason=req.reason, rejection_reason=req.rejection_reason,
+        lines=[
+            RequestLineOut(
+                id=ln.id, material_id=ln.material_id, description=ln.description,
+                quantity=str(ln.quantity), reserved_quantity=str(ln.reserved_quantity),
+                issued_quantity=str(ln.issued_quantity),
+                returned_quantity=str(ln.returned_quantity), status=ln.status,
+            )
+            for ln in lines
+        ],
+    )
+
+
+@router.post("/requests/{request_id}/submit", response_model=RequestOut)
+def submit_request(
+    request_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission("procurement.manage")),
+) -> RequestOut:
+    req = _get_request(db, user, request_id)
+    try:
+        svc.submit_request(db, req, user=user)
+    except svc.ProcurementError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    return _request_out(db, req)
+
+
+@router.post("/requests/{request_id}/request-approval", response_model=RequestOut)
+def request_request_approval(
+    request_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission("procurement.manage")),
+) -> RequestOut:
+    req = _get_request(db, user, request_id)
+    try:
+        svc.request_request_approval(db, req, user=user)
+    except svc.ProcurementError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    return _request_out(db, req)
+
+
+@router.post("/requests/{request_id}/decision", response_model=RequestOut)
+def decide_request(
+    request_id: uuid.UUID,
+    payload: DecisionIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission("procurement.approve")),
+) -> RequestOut:
+    req = _get_request(db, user, request_id)
+    mfa_verified = _check_mfa(req.risk_level, payload, user)
+    try:
+        svc.decide_request(db, req, user=user, decision=payload.decision,
+                           comment=payload.comment, mfa_verified=mfa_verified)
+    except (svc.ProcurementError, svc.ProcurementAuthorizationError) as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    return _request_out(db, req)
 
 
 @router.post("/requests/{request_id}/approve", response_model=RequestOut)
@@ -191,17 +288,129 @@ def approve_request(
     db: Session = Depends(get_db),
     user: User = Depends(require_permission("procurement.approve")),
 ) -> RequestOut:
-    req = db.get(MaterialRequest, request_id)
-    if req is None or req.deleted_at is not None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Заявка не найдена")
-    _project(db, user, req.project_id)
+    """Быстрое согласование заявки уровня R2 (без отдельного шага запроса)."""
+    req = _get_request(db, user, request_id)
     try:
         svc.approve_request(db, req, user=user)
     except svc.ProcurementError as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
-    return RequestOut(id=req.id, project_id=req.project_id, number=req.number, status=req.status,
-                      priority=req.priority, approval_id=req.approval_id,
-                      lines_count=_count_lines(db, MaterialRequestLine, MaterialRequestLine.material_request_id, req.id))
+    return _request_out(db, req)
+
+
+@router.post("/requests/{request_id}/reserve", response_model=RequestOut)
+def reserve_request(
+    request_id: uuid.UUID,
+    payload: ReserveIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission("warehouse.manage")),
+) -> RequestOut:
+    req = _get_request(db, user, request_id)
+    try:
+        svc.reserve_request(db, req, warehouse_id=payload.warehouse_id, user=user)
+    except svc.ProcurementError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    return _request_out(db, req)
+
+
+@router.post("/requests/{request_id}/issue", response_model=IssueDetailOut, status_code=status.HTTP_201_CREATED)
+def issue_request(
+    request_id: uuid.UUID,
+    payload: IssueRequestIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission("warehouse.manage")),
+) -> IssueDetailOut:
+    req = _get_request(db, user, request_id)
+    items = [(it.request_line_id, Decimal(str(it.quantity))) for it in payload.items]
+    try:
+        iss = svc.issue_request(
+            db, req, warehouse_id=payload.warehouse_id, items=items, user=user,
+            issued_to=payload.issued_to, number=payload.number,
+            evidence_document_id=payload.evidence_document_id,
+            evidence_file_id=payload.evidence_file_id,
+        )
+    except svc.ProcurementError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    return IssueDetailOut(
+        id=iss.id, warehouse_id=iss.warehouse_id, material_request_id=iss.material_request_id,
+        number=iss.number, status=iss.status, acknowledgement_status=iss.acknowledgement_status,
+        acknowledged_by=iss.acknowledged_by,
+        lines_count=_count_lines(db, MaterialIssueLine, MaterialIssueLine.material_issue_id, iss.id),
+    )
+
+
+@router.post("/issues/{issue_id}/acknowledge", response_model=IssueDetailOut)
+def acknowledge_issue(
+    issue_id: uuid.UUID,
+    payload: AcknowledgeIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission("procurement.manage")),
+) -> IssueDetailOut:
+    iss = db.get(MaterialIssue, issue_id)
+    if iss is None or iss.deleted_at is not None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Выдача не найдена")
+    if iss.project_id is not None and not svc.can_access(db, user, iss.project_id):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Нет доступа к проекту")
+    try:
+        svc.acknowledge_issue(
+            db, iss, user=user, employee_id=payload.employee_id,
+            confirmed=payload.confirmed, reason=payload.reason,
+            evidence_document_id=payload.evidence_document_id,
+            evidence_file_id=payload.evidence_file_id,
+        )
+    except svc.ProcurementError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    return IssueDetailOut(
+        id=iss.id, warehouse_id=iss.warehouse_id, material_request_id=iss.material_request_id,
+        number=iss.number, status=iss.status, acknowledgement_status=iss.acknowledgement_status,
+        acknowledged_by=iss.acknowledged_by,
+        lines_count=_count_lines(db, MaterialIssueLine, MaterialIssueLine.material_issue_id, iss.id),
+    )
+
+
+def _return_out(r: MaterialReturn) -> ReturnOut:
+    return ReturnOut(
+        id=r.id, material_id=r.material_id, quantity=str(r.quantity),
+        return_type=r.return_type, status=r.status,
+        material_request_id=r.material_request_id, confirmed_by=r.confirmed_by,
+    )
+
+
+@router.post("/requests/{request_id}/return", response_model=ReturnOut, status_code=status.HTTP_201_CREATED)
+def return_from_request(
+    request_id: uuid.UUID,
+    payload: RequestReturnIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission("procurement.manage")),
+) -> ReturnOut:
+    req = _get_request(db, user, request_id)
+    try:
+        ret = svc.return_from_request(
+            db, req, warehouse_id=payload.warehouse_id, material_id=payload.material_id,
+            quantity=Decimal(str(payload.quantity)), user=user,
+            request_line_id=payload.request_line_id, issue_id=payload.issue_id,
+            reason=payload.reason, number=payload.number,
+        )
+    except svc.ProcurementError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    return _return_out(ret)
+
+
+@router.post("/returns/{return_id}/confirm", response_model=ReturnOut)
+def confirm_return(
+    return_id: uuid.UUID,
+    payload: ConfirmReturnIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission("warehouse.manage")),
+) -> ReturnOut:
+    ret = db.get(MaterialReturn, return_id)
+    if ret is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Возврат не найден")
+    try:
+        svc.confirm_return(db, ret, user=user, employee_id=payload.employee_id,
+                           evidence_document_id=payload.evidence_document_id)
+    except svc.ProcurementError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    return _return_out(ret)
 
 
 # --------------------------- Запросы цен (RFQ) --------------------------- #
@@ -631,7 +840,7 @@ def summary(
         return int(db.scalar(select(func.count()).select_from(model).where(model.organization_id == org, *where)) or 0)
 
     return ProcurementSummary(
-        requests_open=_cnt(MaterialRequest, MaterialRequest.status.in_(("submitted", "approved")), MaterialRequest.deleted_at.is_(None)),
+        requests_open=_cnt(MaterialRequest, MaterialRequest.status.in_(("submitted", "pending_approval", "approved", "reserved", "partially_issued")), MaterialRequest.deleted_at.is_(None)),
         orders_pending=_cnt(PurchaseOrder, PurchaseOrder.status == "pending_approval", PurchaseOrder.deleted_at.is_(None)),
         orders_active=_cnt(PurchaseOrder, PurchaseOrder.status.in_(("approved", "sent", "partially_received")), PurchaseOrder.deleted_at.is_(None)),
         writeoffs_pending=_cnt(WriteOffDocument, WriteOffDocument.status == "pending_approval", WriteOffDocument.deleted_at.is_(None)),

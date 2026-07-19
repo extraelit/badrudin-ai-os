@@ -75,6 +75,7 @@ const NAV: NavGroup[] = [
     section: "Снабжение и закупки",
     items: [
       { href: "/procurement", label: "Сводка снабжения", icon: "procurement" },
+      { href: "/procurement/material-flow", label: "Заявки и выдача (контур)", icon: "tasks" },
       { href: "/procurement/requests", label: "Заявки на материалы", icon: "tasks" },
       { href: "/procurement/rfq", label: "Запросы цен и КП", icon: "reports" },
       { href: "/procurement/orders", label: "Заказы поставщикам", icon: "approvals", badge: "3", badgeWarn: true },
@@ -156,6 +157,7 @@ const TITLES: Record<string, { title: string; sub: string }> = {
   "/accountable": { title: "Подотчётные средства", sub: "Выдача под отчёт, расходы с чеками, авансовый отчёт" },
   "/accountable/review": { title: "Проверка подотчётных расходов", sub: "Бухгалтер: проверка расходов, отчётов, возврат/возмещение" },
   "/procurement": { title: "Снабжение и закупки — сводка", sub: "Заявки, заказы, поставки, склад" },
+  "/procurement/material-flow": { title: "Заявки и выдача материалов", sub: "Заявка → согласование R2–R4 → резерв → выдача → получение → возврат" },
   "/procurement/requests": { title: "Заявки на материалы", sub: "Проверка сметы и остатков, согласование R2" },
   "/procurement/rfq": { title: "Запросы цен и сравнение КП", sub: "Предложения поставщиков и выбор цены" },
   "/procurement/orders": { title: "Заказы поставщикам", sub: "Согласование R3/R4, резервирование" },

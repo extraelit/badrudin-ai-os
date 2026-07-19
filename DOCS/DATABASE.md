@@ -3082,6 +3082,40 @@ amount_issued + amount_reimbursable = amount_spent_confirmed + amount_returned
 - автоматическое выявление дефицита, перерасхода, просрочек и необоснованных закупок;
 - сохранение полного журнала действий и подтверждающих документов.
 
+> **Статус реализации (миграции 0013, 0018).** Общий контур снабжения и склада
+> (§33.3–33.14: номенклатура, склады, остатки и движения, RFQ, заказы, поступление,
+> списание, инвентаризация) реализован миграцией 0013. Миграция **0018** развивает
+> подмодуль **«Заявки и выдача материалов»** (§33.6–33.7, §33.12–33.13) полным
+> рабочим жизненным циклом — без создания дублирующих сущностей, только расширением
+> существующих таблиц:
+> - `material_requests` дополнена полями `task_id` (заявка по проекту/объекту/**задаче**),
+>   `responsible_employee_id` (ответственный), `is_critical`, `risk_level`,
+>   `decided_by_user_id`/`decided_at`/`rejection_reason`/`closed_at`; статусы:
+>   `draft → submitted → pending_approval → approved → reserved → partially_issued → issued`
+>   (а также `rejected`/`cancelled`/`closed`);
+> - `material_request_lines` дополнена `reserved_quantity`/`issued_quantity`/`returned_quantity`
+>   для контроля частичной выдачи и возвратов по строке;
+> - `material_issues` дополнена `material_request_id` (выдача по заявке), `issued_by`,
+>   подтверждением получения `acknowledgement_status`/`acknowledged_by`/`acknowledged_at`/
+>   `dispute_reason` и доказательствами `evidence_document_id`/`evidence_file_id`
+>   (существующие `documents`/`files`);
+> - `material_issue_lines` дополнена `material_request_line_id`;
+> - `material_returns` дополнена `material_request_id`/`material_issue_id`, подтверждением
+>   возврата `confirmed_by`/`confirmed_at` и `evidence_document_id`.
+>
+> **Согласование** заявки — общий контур `approvals` (§16, D-001): R2 — обычная,
+> R3 — срочная/высокого приоритета, **R4 (критическая операция) — с обязательным MFA**;
+> пороги/требование MFA — `procurement_settings`. **Резервирование** уменьшает свободный
+> остаток (`inventory_balances.reserved_quantity`) и не позволяет зарезервировать больше
+> доступного; **выдача** (в т. ч. частичная) списывает остаток идемпотентной проводкой
+> (`inventory_transactions`), снимает резерв и обновляет исполнение строк; **возврат**
+> приходует остаток обратно. **RBAC/ABAC**: инициатор — `procurement.manage`, согласующий —
+> `procurement.approve`, склад/резерв/выдача/подтверждение возврата — `warehouse.manage`;
+> доступ к заявке ограничен доступными пользователю проектами. Все действия — в `audit_events`.
+> API — под префиксом `/procurement` (`.../requests/{id}/submit|request-approval|decision|
+> reserve|issue`, `.../issues/{id}/acknowledge`, `.../requests/{id}/return`,
+> `.../returns/{id}/confirm`). Экран рабочего контура — `/procurement/material-flow`.
+
 ### 33.2. Базовые принципы учёта
 
 1. Каждая материальная ценность должна иметь уникальный идентификатор либо относиться к номенклатурной позиции.
