@@ -13,7 +13,7 @@ from app.models.organization import (
     Position,
 )
 from app.models.access_grant import ProjectAccess
-from app.models.agent import AgentRun, AIAgent
+from app.models.agent import AgentProposal, AgentRun, AIAgent
 from app.models.audit import AuditEvent
 from app.models.content import (
     DailyReport,
@@ -169,6 +169,7 @@ __all__ = [
     "Notification",
     "AIAgent",
     "AgentRun",
+    "AgentProposal",
     "AuditEvent",
     "ProjectAccess",
     "SiteWorkerAssignment",
