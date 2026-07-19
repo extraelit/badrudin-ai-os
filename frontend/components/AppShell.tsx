@@ -46,9 +46,17 @@ const NAV: NavGroup[] = [
     ],
   },
   {
+    section: "Финансы и бюджеты",
+    items: [
+      { href: "/finance", label: "Финансовая сводка", icon: "finance" },
+      { href: "/finance/budget", label: "Бюджет проекта", icon: "documents" },
+      { href: "/finance/commitments", label: "Обязательства", icon: "procurement", badge: "1", badgeWarn: true },
+      { href: "/finance/plan-fact", label: "План-факт", icon: "reports" },
+    ],
+  },
+  {
     section: "Операции",
     items: [
-      { href: "/finance", label: "Финансы и бюджеты", icon: "finance" },
       { href: "/documents", label: "Документы", icon: "documents" },
     ],
   },
@@ -127,7 +135,10 @@ const TITLES: Record<string, { title: string; sub: string }> = {
   "/crm/communications": { title: "Единый центр коммуникаций", sub: "Письма, звонки, встречи; сообщение → задача" },
   "/crm/contracts": { title: "Договоры", sub: "Согласование R3/R4, основание для проекта" },
   "/crm/offers": { title: "Коммерческие предложения", sub: "Переиспользование commercial_offers сметного модуля" },
-  "/finance": { title: "Финансы и бюджеты", sub: "План-факт, кассовый прогноз, подотчётные" },
+  "/finance": { title: "Финансы и бюджеты — сводка", sub: "Бюджет, обязательства, факт, остаток и прогноз" },
+  "/finance/budget": { title: "Бюджет проекта", sub: "Статьи из сметы и ручные · утверждение R3/R4" },
+  "/finance/commitments": { title: "Финансовые обязательства", sub: "Заказы, договоры и ручные обязательства" },
+  "/finance/plan-fact": { title: "План-факт по проектам", sub: "Бюджет, обязательства, факт и прогноз портфеля" },
   "/procurement": { title: "Снабжение и закупки — сводка", sub: "Заявки, заказы, поставки, склад" },
   "/procurement/requests": { title: "Заявки на материалы", sub: "Проверка сметы и остатков, согласование R2" },
   "/procurement/rfq": { title: "Запросы цен и сравнение КП", sub: "Предложения поставщиков и выбор цены" },
