@@ -118,6 +118,7 @@ from app.models.personnel import (
     WorkPermit,
     WorkShift,
 )
+from app.models.field_report import DailyReportEquipment, DailyReportFile
 from app.models.rbac import Permission, Role, RolePermission, UserRole
 from app.models.task import (
     Approval,
@@ -168,6 +169,8 @@ __all__ = [
     "ForemanJournal",
     "DailyReportHeadcount",
     "DailyReportIssue",
+    "DailyReportEquipment",
+    "DailyReportFile",
     "ProjectMilestone",
     "ProjectDiscipline",
     "Counterparty",
