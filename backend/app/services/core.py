@@ -170,9 +170,9 @@ def assign_task(
 
 
 def accept_task(session: Session, task: Task, *, user: User) -> Task:
-    """Исполнитель подтверждает получение поручения."""
-    if task.status not in ("assigned", "sent"):
-        raise CoreStateError("подтвердить получение можно только назначенного поручения")
+    """Исполнитель подтверждает получение поручения (назначенного или утверждённого)."""
+    if task.status not in ("assigned", "sent", "approved"):
+        raise CoreStateError("подтвердить получение можно только согласованного поручения")
     task.status = "accepted"
     session.add(TaskUpdate(task_id=task.id, author_user_id=user.id, update_type="status_change", message="Поручение принято"))
     record_event(
