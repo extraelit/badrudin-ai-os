@@ -100,6 +100,13 @@ from app.models.finance import (
     Payment,
     PaymentRequest,
 )
+from app.models.accountable import (
+    AccountableAdvance,
+    AccountableExpense,
+    AdvanceReport,
+    AdvanceSettlement,
+    ExpenseDocument,
+)
 from app.models.personnel import (
     DailyReportHeadcount,
     DailyReportIssue,
@@ -223,4 +230,9 @@ __all__ = [
     "Invoice",
     "PaymentRequest",
     "Payment",
+    "AccountableAdvance",
+    "AccountableExpense",
+    "ExpenseDocument",
+    "AdvanceReport",
+    "AdvanceSettlement",
 ]

@@ -33,6 +33,7 @@ from sqlalchemy import (
     Text,
     Uuid,
     false,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -73,6 +74,20 @@ class ExpenseCategory(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base
     # material | labor | machine | subcontract | overhead | other
     kind: Mapped[str] = mapped_column(String(32), default="other")
     status: Mapped[str] = mapped_column(String(16), default="active")
+    # правила подотчётных расходов (DATABASE.md §32.6)
+    requires_project: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false(), nullable=False
+    )
+    requires_site: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false(), nullable=False
+    )
+    requires_receipt: Mapped[bool] = mapped_column(
+        Boolean, default=True, server_default=text("1"), nullable=False
+    )
+    requires_preapproval: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false(), nullable=False
+    )
+    default_limit: Mapped[Decimal | None] = mapped_column(Numeric(18, 2), nullable=True)
 
 
 class Budget(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
