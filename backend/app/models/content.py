@@ -106,6 +106,7 @@ class DailyReport(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     problems: Mapped[str | None] = mapped_column(Text, nullable=True)
     materials_needed: Mapped[str | None] = mapped_column(Text, nullable=True)
     plan_next_day: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # draft | submitted | approved | rejected | correction_required
     status: Mapped[str] = mapped_column(String(32), default="draft")
     submitted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
@@ -113,6 +114,9 @@ class DailyReport(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     approved_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # проверка руководителем (ПТО): кто и с каким комментарием
+    reviewed_by_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    review_comment: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class DailyReportWorkItem(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -127,6 +131,10 @@ class DailyReportWorkItem(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     daily_report_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("daily_reports.id"), nullable=True
+    )
+    # связь выполненной работы с задачей-поручением (§18)
+    task_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("tasks.id"), nullable=True
     )
     estimate_position_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("estimate_positions.id"), nullable=True
