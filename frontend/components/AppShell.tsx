@@ -6,9 +6,10 @@
  */
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Icons, type IconName } from "../lib/icons";
 import { company } from "../lib/mock";
+import { logout } from "../lib/authApi";
 
 interface NavItem {
   href: string;
@@ -183,6 +184,7 @@ const TITLES: Record<string, { title: string; sub: string }> = {
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() || "/dashboard";
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const meta = TITLES[pathname] ?? { title: company.system, sub: company.name };
 
@@ -267,13 +269,21 @@ export default function AppShell({ children }: { children: ReactNode }) {
             <Icons.bell width={19} height={19} />
             <span className="dot" />
           </button>
-          <Link href="/login" className="avatar" title="Выйти в демо-вход">
+          <button
+            className="avatar"
+            title="Выйти из системы"
+            onClick={async () => {
+              await logout();
+              router.push("/login");
+            }}
+            style={{ background: "none", border: "none", cursor: "pointer" }}
+          >
             <div className="avatar__img">БМ</div>
             <div>
               <div className="avatar__name">{company.ceo}</div>
-              <div className="avatar__role">{company.role}</div>
+              <div className="avatar__role">Выйти</div>
             </div>
-          </Link>
+          </button>
         </header>
 
         <main className="content">{children}</main>

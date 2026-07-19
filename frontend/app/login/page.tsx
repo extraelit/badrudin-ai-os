@@ -1,21 +1,41 @@
 "use client";
 
 /*
- * Демонстрационный экран входа (UX/UI-прототип).
- * Аутентификация не выполняется: кнопка ведёт в демо-интерфейс с mock-данными.
- * Реальные учётные данные, секреты и подключение к production отсутствуют.
+ * Экран входа Badrudin AI OS.
+ * Реальная аутентификация через backend (/auth/login) с сохранением JWT.
+ * Если backend не настроен (NEXT_PUBLIC_API_BASE_URL пуст) — показывается
+ * демонстрационный вход в интерфейс с mock-данными (без аутентификации).
  */
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { login, apiBaseConfigured } from "../../lib/authApi";
 
 export default function LoginPage() {
   const router = useRouter();
+  const live = apiBaseConfigured();
   const [email, setEmail] = useState("director@extra-elit.demo");
-  const [password, setPassword] = useState("demo-2026");
+  const [password, setPassword] = useState("");
+  const [mfa, setMfa] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  function enter(e: React.FormEvent) {
+  async function enter(e: React.FormEvent) {
     e.preventDefault();
-    router.push("/dashboard");
+    setError(null);
+    if (!live) {
+      router.push("/dashboard");
+      return;
+    }
+    setBusy(true);
+    try {
+      await login(email, password, mfa || undefined);
+      router.push("/dashboard");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Ошибка входа";
+      setError(msg.toLowerCase().includes("mfa") || msg.toLowerCase().includes("многофактор") ? "Требуется код MFA" : msg);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -41,7 +61,7 @@ export default function LoginPage() {
           </ul>
         </div>
         <div className="login__foot">
-          Демонстрационная версия · показ интерфейса на mock-данных
+          {live ? "Рабочий режим · вход через backend" : "Демонстрационная версия · показ интерфейса на mock-данных"}
         </div>
       </div>
 
@@ -54,37 +74,34 @@ export default function LoginPage() {
 
           <div className="field">
             <label>Электронная почта</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="username"
-            />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" />
           </div>
           <div className="field">
             <label>Пароль</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-            />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
           </div>
+          {live && (
+            <div className="field">
+              <label>Код MFA (для критических ролей)</label>
+              <input type="text" value={mfa} onChange={(e) => setMfa(e.target.value)} placeholder="необязательно" inputMode="numeric" />
+            </div>
+          )}
 
-          <div className="row row--between" style={{ margin: "6px 0 20px" }}>
-            <label className="row" style={{ gap: 8, fontSize: 13 }}>
-              <input type="checkbox" defaultChecked /> Запомнить меня
-            </label>
-            <span className="link-more">Забыли пароль?</span>
-          </div>
+          {error && (
+            <div className="alert" style={{ marginBottom: 14 }}>
+              <div className="alert__icon">!</div>
+              <div style={{ fontSize: 13 }}>{error}</div>
+            </div>
+          )}
 
-          <button type="submit" className="btn btn--primary" style={{ width: "100%", justifyContent: "center" }}>
-            Войти в систему
+          <button type="submit" className="btn btn--primary" disabled={busy} style={{ width: "100%", justifyContent: "center" }}>
+            {busy ? "Вход…" : "Войти в систему"}
           </button>
 
           <div className="login__note">
-            Демо-режим: аутентификация и production не подключены. Кнопка
-            открывает интерфейс с демонстрационными данными.
+            {live
+              ? "Демо-учётные записи: director@extra-elit.demo (директор) · owner@extra-elit.demo (владелец, требует MFA). Пароль — из SEED_DEMO_PASSWORD."
+              : "Демо-режим: backend не подключён. Кнопка открывает интерфейс с демонстрационными данными."}
           </div>
         </form>
       </div>
