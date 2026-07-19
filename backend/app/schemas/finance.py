@@ -137,3 +137,86 @@ class FinancialSummaryOut(BaseModel):
     has_approved_budget: bool
     committed_breakdown: list[SummaryComponentOut]
     actual_breakdown: list[SummaryComponentOut]
+
+
+# ------------------ Счета, заявки на оплату, платежи --------------------- #
+
+
+class InvoiceIn(BaseModel):
+    counterparty_id: uuid.UUID
+    amount: float = Field(gt=0)
+    vat_amount: float = Field(0, ge=0)
+    invoice_number: str | None = None
+    invoice_date: date | None = None
+    due_date: date | None = None
+    contract_id: uuid.UUID | None = None
+    commitment_id: uuid.UUID | None = None
+    budget_line_id: uuid.UUID | None = None
+    document_id: uuid.UUID | None = None
+
+
+class InvoiceOut(BaseModel):
+    id: uuid.UUID
+    project_id: uuid.UUID
+    counterparty_id: uuid.UUID
+    invoice_number: str | None
+    invoice_date: date | None
+    due_date: date | None
+    amount: str
+    vat_amount: str
+    paid_amount: str
+    currency: str
+    status: str
+    payment_status: str
+    contract_id: uuid.UUID | None
+    commitment_id: uuid.UUID | None
+
+
+class PaymentRequestIn(BaseModel):
+    amount: float | None = Field(None, gt=0)
+    planned_payment_date: date | None = None
+    priority: str = "normal"
+    justification: str | None = None
+
+
+class PaymentRequestOut(BaseModel):
+    id: uuid.UUID
+    invoice_id: uuid.UUID
+    project_id: uuid.UUID
+    amount: str
+    currency: str
+    priority: str
+    planned_payment_date: date | None
+    justification: str | None
+    status: str
+    risk_level: str
+    approval_id: uuid.UUID | None
+
+
+class RecordPaymentIn(BaseModel):
+    amount: float | None = Field(None, gt=0)
+    payment_date: date | None = None
+    external_transaction_id: str | None = None
+    idempotency_key: str | None = None
+    mfa_code: str | None = None
+
+
+class PaymentOut(BaseModel):
+    id: uuid.UUID
+    invoice_id: uuid.UUID | None
+    payment_request_id: uuid.UUID | None
+    amount: str
+    currency: str
+    payment_direction: str
+    method: str
+    payment_date: date | None
+    status: str
+
+
+class PayablesSummaryOut(BaseModel):
+    project_id: uuid.UUID
+    currency: str
+    invoiced_total: str
+    approved_to_pay: str
+    paid_total: str
+    outstanding: str

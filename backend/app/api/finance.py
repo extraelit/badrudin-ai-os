@@ -392,3 +392,220 @@ def export_financial_summary(
         content=body, media_type=media,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ============ Счета, заявки на оплату, платежи (§16.5–16.7) ============= #
+
+from app.models import Invoice, Payment, PaymentRequest  # noqa: E402
+from app.schemas.finance import (  # noqa: E402
+    InvoiceIn,
+    InvoiceOut,
+    PayablesSummaryOut,
+    PaymentOut,
+    PaymentRequestIn,
+    PaymentRequestOut,
+    RecordPaymentIn,
+)
+
+
+def _invoice(db: Session, user: User, invoice_id: uuid.UUID) -> Invoice:
+    inv = db.get(Invoice, invoice_id)
+    if inv is None or inv.deleted_at is not None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Счёт не найден")
+    _project(db, user, inv.project_id)
+    return inv
+
+
+def _payment_request(db: Session, user: User, pr_id: uuid.UUID) -> PaymentRequest:
+    pr = db.get(PaymentRequest, pr_id)
+    if pr is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Заявка на оплату не найдена")
+    _project(db, user, pr.project_id)
+    return pr
+
+
+def _invoice_out(i: Invoice) -> InvoiceOut:
+    return InvoiceOut(
+        id=i.id, project_id=i.project_id, counterparty_id=i.counterparty_id,
+        invoice_number=i.invoice_number, invoice_date=i.invoice_date, due_date=i.due_date,
+        amount=str(i.amount), vat_amount=str(i.vat_amount), paid_amount=str(i.paid_amount),
+        currency=i.currency, status=i.status, payment_status=i.payment_status,
+        contract_id=i.contract_id, commitment_id=i.commitment_id,
+    )
+
+
+def _pr_out(p: PaymentRequest) -> PaymentRequestOut:
+    return PaymentRequestOut(
+        id=p.id, invoice_id=p.invoice_id, project_id=p.project_id, amount=str(p.amount),
+        currency=p.currency, priority=p.priority, planned_payment_date=p.planned_payment_date,
+        justification=p.justification, status=p.status, risk_level=p.risk_level,
+        approval_id=p.approval_id,
+    )
+
+
+def _payment_out(p: Payment) -> PaymentOut:
+    return PaymentOut(
+        id=p.id, invoice_id=p.invoice_id, payment_request_id=p.payment_request_id,
+        amount=str(p.amount), currency=p.currency, payment_direction=p.payment_direction,
+        method=p.method, payment_date=p.payment_date, status=p.status,
+    )
+
+
+@router.get("/projects/{project_id}/invoices", response_model=list[InvoiceOut])
+def list_invoices(
+    project_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission("finance.view")),
+) -> list[InvoiceOut]:
+    _project(db, user, project_id)
+    rows = db.execute(
+        select(Invoice).where(Invoice.project_id == project_id, Invoice.deleted_at.is_(None))
+        .order_by(Invoice.created_at.desc())
+    ).scalars()
+    return [_invoice_out(i) for i in rows]
+
+
+@router.post("/projects/{project_id}/invoices", response_model=InvoiceOut, status_code=status.HTTP_201_CREATED)
+def create_invoice(
+    project_id: uuid.UUID,
+    payload: InvoiceIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission("invoice.manage")),
+) -> InvoiceOut:
+    project = _project(db, user, project_id)
+    try:
+        inv = svc.create_invoice(
+            db, project, user=user, counterparty_id=payload.counterparty_id,
+            amount=Decimal(str(payload.amount)), vat_amount=Decimal(str(payload.vat_amount)),
+            invoice_number=payload.invoice_number, invoice_date=payload.invoice_date,
+            due_date=payload.due_date, contract_id=payload.contract_id,
+            commitment_id=payload.commitment_id, budget_line_id=payload.budget_line_id,
+            document_id=payload.document_id,
+        )
+    except svc.FinanceValidationError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+    return _invoice_out(inv)
+
+
+@router.post("/invoices/{invoice_id}/register", response_model=InvoiceOut)
+def register_invoice(
+    invoice_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission("invoice.manage")),
+) -> InvoiceOut:
+    inv = _invoice(db, user, invoice_id)
+    try:
+        svc.register_invoice(db, inv, user=user)
+    except svc.FinanceStateError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    return _invoice_out(inv)
+
+
+@router.post("/invoices/{invoice_id}/payment-requests", response_model=PaymentRequestOut, status_code=status.HTTP_201_CREATED)
+def create_payment_request(
+    invoice_id: uuid.UUID,
+    payload: PaymentRequestIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission("payment.request")),
+) -> PaymentRequestOut:
+    inv = _invoice(db, user, invoice_id)
+    try:
+        pr = svc.create_payment_request(
+            db, inv, user=user,
+            amount=Decimal(str(payload.amount)) if payload.amount is not None else None,
+            planned_payment_date=payload.planned_payment_date, priority=payload.priority,
+            justification=payload.justification,
+        )
+    except svc.FinanceValidationError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+    except svc.FinanceStateError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    return _pr_out(pr)
+
+
+@router.get("/projects/{project_id}/payment-requests", response_model=list[PaymentRequestOut])
+def list_payment_requests(
+    project_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission("finance.view")),
+) -> list[PaymentRequestOut]:
+    _project(db, user, project_id)
+    rows = db.execute(
+        select(PaymentRequest).where(PaymentRequest.project_id == project_id)
+        .order_by(PaymentRequest.created_at.desc())
+    ).scalars()
+    return [_pr_out(p) for p in rows]
+
+
+@router.post("/payment-requests/{pr_id}/decision", response_model=PaymentRequestOut)
+def decide_payment_request(
+    pr_id: uuid.UUID,
+    payload: DecisionIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission("payment.approve")),
+) -> PaymentRequestOut:
+    pr = _payment_request(db, user, pr_id)
+    mfa_verified = False
+    if pr.risk_level == "R4" and payload.decision == "approved":
+        mfa_verified = _require_mfa(user, payload.mfa_code)
+    try:
+        svc.decide_payment_request(
+            db, pr, user=user, decision=payload.decision, comment=payload.comment,
+            mfa_verified=mfa_verified,
+        )
+    except (svc.FinanceStateError, svc.FinanceAuthorizationError) as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    return _pr_out(pr)
+
+
+@router.post("/payment-requests/{pr_id}/payments", response_model=PaymentOut, status_code=status.HTTP_201_CREATED)
+def record_payment(
+    pr_id: uuid.UUID,
+    payload: RecordPaymentIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission("payment.approve")),
+) -> PaymentOut:
+    pr = _payment_request(db, user, pr_id)
+    inv = _invoice(db, user, pr.invoice_id)
+    try:
+        payment = svc.record_payment(
+            db, pr, inv, user=user,
+            amount=Decimal(str(payload.amount)) if payload.amount is not None else None,
+            payment_date=payload.payment_date,
+            external_transaction_id=payload.external_transaction_id,
+            idempotency_key=payload.idempotency_key,
+        )
+    except svc.FinanceValidationError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+    except svc.FinanceStateError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    return _payment_out(payment)
+
+
+@router.get("/projects/{project_id}/payments", response_model=list[PaymentOut])
+def list_payments(
+    project_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission("finance.view")),
+) -> list[PaymentOut]:
+    _project(db, user, project_id)
+    rows = db.execute(
+        select(Payment).where(Payment.project_id == project_id)
+        .order_by(Payment.created_at.desc())
+    ).scalars()
+    return [_payment_out(p) for p in rows]
+
+
+@router.get("/projects/{project_id}/payables-summary", response_model=PayablesSummaryOut)
+def payables_summary(
+    project_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_permission("finance.view")),
+) -> PayablesSummaryOut:
+    project = _project(db, user, project_id)
+    s = svc.payables_summary(db, project)
+    return PayablesSummaryOut(
+        project_id=s.project_id, currency=s.currency, invoiced_total=str(s.invoiced_total),
+        approved_to_pay=str(s.approved_to_pay), paid_total=str(s.paid_total),
+        outstanding=str(s.outstanding),
+    )

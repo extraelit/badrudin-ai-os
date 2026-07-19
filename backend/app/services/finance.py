@@ -595,3 +595,251 @@ def export_summary(summary: ProjectFinancialSummary, *, fmt: str = "csv") -> str
 
 def can_access_finance_project(session: Session, user: User, project_id: uuid.UUID) -> bool:
     return can_access_project(session, user, project_id)
+
+
+# ============ Счета, заявки на оплату, платежи (§16.5–16.7) ============= #
+
+from app.models import Invoice, Payment, PaymentRequest  # noqa: E402
+
+# Статусы счёта, участвующие в расчёте задолженности к оплате.
+INVOICE_PAYABLE = ("registered",)
+
+
+def create_invoice(
+    session: Session,
+    project: Project,
+    *,
+    user: User,
+    counterparty_id: uuid.UUID,
+    amount: Decimal,
+    vat_amount: Decimal = Decimal("0"),
+    invoice_number: str | None = None,
+    invoice_date=None,
+    due_date=None,
+    contract_id: uuid.UUID | None = None,
+    commitment_id: uuid.UUID | None = None,
+    budget_line_id: uuid.UUID | None = None,
+    document_id: uuid.UUID | None = None,
+) -> Invoice:
+    """Создаёт счёт (черновик). Файл счёта — через `documents`."""
+    if Decimal(amount) <= 0:
+        raise FinanceValidationError("сумма счёта должна быть > 0")
+    invoice = Invoice(
+        organization_id=project.organization_id, project_id=project.id,
+        counterparty_id=counterparty_id, contract_id=contract_id,
+        commitment_id=commitment_id, budget_line_id=budget_line_id,
+        document_id=document_id, invoice_number=invoice_number,
+        invoice_date=invoice_date, due_date=due_date, amount=_q(Decimal(amount)),
+        vat_amount=_q(Decimal(vat_amount)), currency=project.currency,
+        status="draft", payment_status="unpaid", created_by=user.id,
+    )
+    session.add(invoice)
+    session.flush()
+    record_event(
+        session, actor_type="user", action="finance.invoice.created",
+        actor_user_id=user.id, organization_id=project.organization_id,
+        entity_type="invoice", entity_id=invoice.id,
+        new_values={"amount": str(invoice.amount)}, commit=False,
+    )
+    session.commit()
+    return invoice
+
+
+def register_invoice(session: Session, invoice: Invoice, *, user: User) -> Invoice:
+    """Регистрирует счёт (draft → registered); после этого возможна заявка на оплату."""
+    if invoice.status != "draft":
+        raise FinanceStateError(f"нельзя зарегистрировать счёт из '{invoice.status}'")
+    invoice.status = "registered"
+    record_event(
+        session, actor_type="user", action="finance.invoice.registered",
+        actor_user_id=user.id, organization_id=invoice.organization_id,
+        entity_type="invoice", entity_id=invoice.id, commit=False,
+    )
+    session.commit()
+    return invoice
+
+
+def _invoice_outstanding(invoice: Invoice) -> Decimal:
+    return _q(Decimal(invoice.amount or 0) - Decimal(invoice.paid_amount or 0))
+
+
+def create_payment_request(
+    session: Session,
+    invoice: Invoice,
+    *,
+    user: User,
+    amount: Decimal | None = None,
+    planned_payment_date=None,
+    priority: str = "normal",
+    justification: str | None = None,
+) -> PaymentRequest:
+    """Создаёт заявку на оплату счёта (R3, крупная — R4). Не проводит платёж."""
+    if invoice.status != "registered":
+        raise FinanceStateError("заявка возможна только по зарегистрированному счёту")
+    outstanding = _invoice_outstanding(invoice)
+    req_amount = _q(Decimal(amount)) if amount is not None else outstanding
+    if req_amount <= 0:
+        raise FinanceValidationError("сумма заявки должна быть > 0")
+    if req_amount > outstanding:
+        raise FinanceValidationError("сумма заявки превышает остаток к оплате по счёту")
+    threshold = large_threshold(session, invoice.organization_id)
+    risk = operation_risk_level(req_amount, threshold=threshold)
+    approval = Approval(
+        organization_id=invoice.organization_id, entity_type="payment_request",
+        entity_id=invoice.id, approval_type="payment_request",
+        requested_by_user_id=user.id, status="pending", current_step=1,
+    )
+    session.add(approval)
+    session.flush()
+    pr = PaymentRequest(
+        organization_id=invoice.organization_id, invoice_id=invoice.id,
+        project_id=invoice.project_id, amount=req_amount, currency=invoice.currency,
+        requested_by=user.id, planned_payment_date=planned_payment_date,
+        priority=priority, justification=justification, status="pending",
+        risk_level=risk, approval_id=approval.id,
+    )
+    session.add(pr)
+    session.flush()
+    approval.entity_id = pr.id
+    record_event(
+        session, actor_type="user", action="finance.payment_request.created",
+        actor_user_id=user.id, organization_id=invoice.organization_id,
+        entity_type="payment_request", entity_id=pr.id, approval_id=approval.id,
+        new_values={"amount": str(req_amount)}, risk_level=risk, commit=False,
+    )
+    session.commit()
+    return pr
+
+
+def decide_payment_request(
+    session: Session,
+    pr: PaymentRequest,
+    *,
+    user: User,
+    decision: str,
+    comment: str | None = None,
+    mfa_verified: bool = False,
+) -> PaymentRequest:
+    """Фиксирует решение по заявке на оплату. Крупная сумма (R4) требует MFA."""
+    if decision not in ("approved", "rejected"):
+        raise FinanceStateError(f"неизвестное решение '{decision}'")
+    if pr.status != "pending" or pr.approval_id is None:
+        raise FinanceStateError("нет активного запроса на согласование заявки")
+    if decision == "approved" and pr.risk_level == "R4" and not mfa_verified:
+        raise FinanceAuthorizationError(
+            "крупная заявка на оплату (R4) требует подтверждения усиленной аутентификацией"
+        )
+    approval = session.get(Approval, pr.approval_id)
+    session.add(
+        ApprovalStep(
+            approval_id=approval.id, step_number=approval.current_step,
+            approver_user_id=user.id, decision=decision, comment=comment,
+            decided_at=datetime.now(UTC),
+        )
+    )
+    approval.status = decision
+    approval.completed_at = datetime.now(UTC)
+    pr.status = "approved" if decision == "approved" else "rejected"
+    record_event(
+        session, actor_type="user", action=f"finance.payment_request.{decision}",
+        actor_user_id=user.id, organization_id=pr.organization_id,
+        entity_type="payment_request", entity_id=pr.id, approval_id=approval.id,
+        reason=comment, risk_level=pr.risk_level, commit=False,
+    )
+    session.commit()
+    return pr
+
+
+def record_payment(
+    session: Session,
+    pr: PaymentRequest,
+    invoice: Invoice,
+    *,
+    user: User,
+    amount: Decimal | None = None,
+    payment_date=None,
+    external_transaction_id: str | None = None,
+    idempotency_key: str | None = None,
+) -> Payment:
+    """Фиксирует платёж по согласованной заявке (ручной ввод; не банковская операция).
+
+    Идемпотентно по `idempotency_key`: повторный ввод с тем же ключом возвращает
+    ранее созданный платёж, не создавая дубликат и не задваивая оплату.
+    """
+    if pr.status not in ("approved",):
+        raise FinanceStateError("платёж возможен только по согласованной заявке")
+    if idempotency_key:
+        existing = session.execute(
+            select(Payment).where(Payment.idempotency_key == idempotency_key)
+        ).scalars().first()
+        if existing is not None:
+            return existing
+    pay_amount = _q(Decimal(amount)) if amount is not None else _q(Decimal(pr.amount))
+    if pay_amount <= 0:
+        raise FinanceValidationError("сумма платежа должна быть > 0")
+    if pay_amount > _invoice_outstanding(invoice):
+        raise FinanceValidationError("платёж превышает остаток к оплате по счёту")
+    payment = Payment(
+        organization_id=invoice.organization_id, project_id=invoice.project_id,
+        counterparty_id=invoice.counterparty_id, invoice_id=invoice.id,
+        payment_request_id=pr.id, payment_date=payment_date, amount=pay_amount,
+        currency=invoice.currency, payment_direction="outgoing", method="manual",
+        external_transaction_id=external_transaction_id,
+        idempotency_key=idempotency_key, status="recorded", recorded_by=user.id,
+    )
+    session.add(payment)
+    # обновляем оплату счёта и статусы
+    invoice.paid_amount = _q(Decimal(invoice.paid_amount or 0) + pay_amount)
+    if _invoice_outstanding(invoice) <= 0:
+        invoice.payment_status = "paid"
+        pr.status = "paid"
+    else:
+        invoice.payment_status = "partially_paid"
+    record_event(
+        session, actor_type="user", action="finance.payment.recorded",
+        actor_user_id=user.id, organization_id=invoice.organization_id,
+        entity_type="payment", entity_id=payment.id, approval_id=pr.approval_id,
+        new_values={"amount": str(pay_amount), "invoice_id": str(invoice.id)},
+        risk_level=pr.risk_level, commit=False,
+    )
+    session.commit()
+    return payment
+
+
+@dataclass
+class PayablesSummary:
+    project_id: uuid.UUID
+    currency: str
+    invoiced_total: Decimal
+    approved_to_pay: Decimal
+    paid_total: Decimal
+    outstanding: Decimal
+
+
+def payables_summary(session: Session, project: Project) -> PayablesSummary:
+    """Регистр к оплате (AP): выставлено, согласовано к оплате, оплачено, остаток."""
+    invoices = list(
+        session.execute(
+            select(Invoice).where(
+                Invoice.project_id == project.id,
+                Invoice.status != "cancelled",
+                Invoice.deleted_at.is_(None),
+            )
+        ).scalars()
+    )
+    invoiced = _q(sum((Decimal(i.amount or 0) for i in invoices), Decimal("0")))
+    paid = _q(sum((Decimal(i.paid_amount or 0) for i in invoices), Decimal("0")))
+    approved = _q(sum((
+        Decimal(pr.amount or 0)
+        for pr in session.execute(
+            select(PaymentRequest).where(
+                PaymentRequest.project_id == project.id,
+                PaymentRequest.status == "approved",
+            )
+        ).scalars()
+    ), Decimal("0")))
+    return PayablesSummary(
+        project_id=project.id, currency=project.currency,
+        invoiced_total=invoiced, approved_to_pay=approved, paid_total=paid,
+        outstanding=_q(invoiced - paid),
+    )
