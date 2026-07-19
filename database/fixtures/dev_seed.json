@@ -34,6 +34,10 @@
     { "code": "estimate.view" },
     { "code": "estimate.manage" },
     { "code": "estimate.approve" },
-    { "code": "offer.approve" }
+    { "code": "offer.approve" },
+    { "code": "procurement.view" },
+    { "code": "procurement.manage" },
+    { "code": "procurement.approve" },
+    { "code": "warehouse.manage" }
   ]
 }
