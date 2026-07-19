@@ -1,5 +1,5 @@
 {
-  "_note": "Тестовые (обезличенные) данные для среды разработки. Не содержат реальных персональных данных и секретов (D-011).",
+  "_note": "Тестовые (обезличенные) данные для среды разработки. Не содержат реальных персональных данных и секретов (D-011). Пароль демо-пользователей задаётся переменной окружения SEED_DEMO_PASSWORD (по умолчанию — демо-значение, только для development).",
   "organizations": [
     { "legal_name": "ООО «Экстра-Элит» (ТЕСТ)", "short_name": "Экстра-Элит ТЕСТ" }
   ],
@@ -14,9 +14,18 @@
   "permissions": [
     { "code": "project.view" },
     { "code": "project.create" },
+    { "code": "project.manage" },
+    { "code": "site.manage" },
+    { "code": "task.view" },
     { "code": "task.create" },
     { "code": "task.approve" },
     { "code": "task.assign" },
+    { "code": "task.execute" },
+    { "code": "approval.view" },
+    { "code": "approval.decide" },
+    { "code": "daily_report.view" },
+    { "code": "daily_report.manage" },
+    { "code": "daily_report.approve" },
     { "code": "finance.view" },
     { "code": "audit.view" },
     { "code": "personnel.view" },
@@ -49,5 +58,35 @@
     { "code": "invoice.manage" },
     { "code": "payment.request" },
     { "code": "payment.approve" }
+  ],
+  "role_permissions": {
+    "production_director": [
+      "project.view", "project.create", "project.manage", "site.manage",
+      "task.view", "task.create", "task.approve", "task.assign", "task.execute",
+      "approval.view", "approval.decide",
+      "daily_report.view", "daily_report.manage", "daily_report.approve",
+      "audit.view", "finance.view", "budget.view", "personnel.view",
+      "procurement.view", "estimate.view", "crm.view"
+    ],
+    "foreman": [
+      "project.view", "site.manage", "task.view", "task.execute",
+      "daily_report.view", "daily_report.manage"
+    ],
+    "accountant": [
+      "project.view", "finance.view", "budget.view", "payroll.view", "audit.view"
+    ],
+    "viewer": [
+      "project.view", "task.view", "approval.view", "daily_report.view"
+    ]
+  },
+  "employees": [
+    { "ref": "emp_owner", "full_name": "Владелец Системы (ДЕМО)", "work_email": "owner@extra-elit.demo" },
+    { "ref": "emp_director", "full_name": "Производственный Директор (ДЕМО)", "work_email": "director@extra-elit.demo" },
+    { "ref": "emp_foreman", "full_name": "Прораб (ДЕМО)", "work_email": "foreman@extra-elit.demo" }
+  ],
+  "users": [
+    { "email": "owner@extra-elit.demo", "employee_ref": "emp_owner", "role": "system_owner", "mfa": true },
+    { "email": "director@extra-elit.demo", "employee_ref": "emp_director", "role": "production_director", "mfa": false },
+    { "email": "foreman@extra-elit.demo", "employee_ref": "emp_foreman", "role": "foreman", "mfa": false }
   ]
 }

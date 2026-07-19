@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     backend_host: str = "0.0.0.0"
     backend_port: int = 8000
 
+    # Разрешённые источники для CORS (интерфейс Next.js обращается к API из браузера).
+    # Список через запятую; задаётся окружением для staging/production.
+    cors_allow_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+
     # Объектное хранилище MinIO (D-008)
     minio_endpoint: str = "minio:9000"
     minio_access_key: str = "change-me"

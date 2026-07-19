@@ -24,3 +24,5 @@ class CurrentUser(BaseModel):
     id: str
     email: EmailStr
     status: str
+    roles: list[str] = []
+    permissions: list[str] = []
