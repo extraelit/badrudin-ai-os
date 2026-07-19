@@ -28,6 +28,17 @@ from app.models.project import (
     ProjectMember,
     Site,
 )
+from app.models.personnel import (
+    DailyReportHeadcount,
+    DailyReportIssue,
+    ForemanJournal,
+    PayrollDraft,
+    PayrollLine,
+    SafetyClearance,
+    SiteWorkerAssignment,
+    WorkPermit,
+    WorkShift,
+)
 from app.models.rbac import Permission, Role, RolePermission, UserRole
 from app.models.task import (
     Approval,
@@ -69,4 +80,13 @@ __all__ = [
     "AgentRun",
     "AuditEvent",
     "ProjectAccess",
+    "SiteWorkerAssignment",
+    "WorkShift",
+    "PayrollDraft",
+    "PayrollLine",
+    "SafetyClearance",
+    "WorkPermit",
+    "ForemanJournal",
+    "DailyReportHeadcount",
+    "DailyReportIssue",
 ]

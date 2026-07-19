@@ -1,16 +1,61 @@
-/* Модуль «Персонал объектов». Экран 1 — сводка директора по всем объектам. */
+"use client";
+
+/* Модуль «Персонал объектов». Экран 1 — сводка директора по всем объектам.
+ *
+ * По умолчанию отображаются демонстрационные (mock) данные. Если задан
+ * NEXT_PUBLIC_API_BASE_URL и backend доступен, живые показатели по объектам
+ * подмешиваются поверх mock без изменения дизайна (graceful fallback). */
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { PageHead, Card, Badge } from "../../../components/ui";
-import { directorSummary, sitePersonnel, personnelWidgets } from "../../../lib/personnel";
-import { Kpi } from "../../../components/ui";
+import { PageHead, Card, Badge, Kpi } from "../../../components/ui";
+import {
+  directorSummary,
+  sitePersonnel,
+  personnelWidgets,
+  type SitePersonnelRow,
+} from "../../../lib/personnel";
+import { personnelApi } from "../../../lib/personnelApi";
 
 export default function PersonnelSummaryPage() {
   const s = directorSummary;
+  const [rows, setRows] = useState<SitePersonnelRow[]>(sitePersonnel);
+  const [live, setLive] = useState(false);
+
+  useEffect(() => {
+    // Живые данные подмешиваются только при доступном backend (иначе — mock).
+    personnelApi
+      .getDirectorSummary()
+      .then((summary) => {
+        const byName = new Map(summary.sites.map((x) => [x.site_name, x]));
+        setRows((prev) =>
+          prev.map((r) => {
+            const api = byName.get(r.site);
+            if (!api) return r;
+            return {
+              ...r,
+              actual: api.workers,
+              onSite: api.on_site,
+              hoursDay: api.hours_day,
+              overtime: api.overtime,
+              idle: api.idle,
+              noPermit: api.without_clearance,
+              unfilledJournals: api.unfilled_journals,
+            };
+          })
+        );
+        setLive(true);
+      })
+      .catch(() => setLive(false));
+  }, []);
+
   return (
     <>
       <PageHead
         title="Персонал объектов — сводка директора"
-        desc="Производственный учёт по всем строительным объектам · 19 июля 2026"
+        desc={
+          "Производственный учёт по всем строительным объектам · 19 июля 2026" +
+          (live ? " · данные из backend" : "")
+        }
       />
 
       <div className="grid grid--3" style={{ marginBottom: 18 }}>
@@ -46,7 +91,7 @@ export default function PersonnelSummaryPage() {
               </tr>
             </thead>
             <tbody>
-              {sitePersonnel.map((r) => (
+              {rows.map((r) => (
                 <tr key={r.site}>
                   <td>
                     <Link href="/personnel/site" className="table__strong" style={{ color: "var(--navy-600)" }}>
