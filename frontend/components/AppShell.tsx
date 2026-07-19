@@ -67,6 +67,18 @@ const NAV: NavGroup[] = [
     ],
   },
   {
+    section: "Сметы и ценообразование",
+    items: [
+      { href: "/estimates", label: "Сводка смет", icon: "finance" },
+      { href: "/estimates/editor", label: "Смета и позиции", icon: "documents" },
+      { href: "/estimates/volumes", label: "Ведомость объёмов", icon: "tasks" },
+      { href: "/estimates/rates", label: "Расценки и цены", icon: "procurement" },
+      { href: "/estimates/offers", label: "Коммерческие предложения", icon: "approvals" },
+      { href: "/estimates/plan-fact", label: "План-факт", icon: "reports" },
+      { href: "/estimates/changes", label: "Изменения сметы", icon: "clock" },
+    ],
+  },
+  {
     section: "Организация",
     items: [
       { href: "/employees", label: "Сотрудники", icon: "employees" },
@@ -103,6 +115,13 @@ const TITLES: Record<string, { title: string; sub: string }> = {
   "/design/specifications": { title: "Спецификации и ведомости", sub: "Материалы, поставщики, аналоги" },
   "/design/issues": { title: "Реестр замечаний", sub: "Замечания → задачи с ответственными" },
   "/design/realizability": { title: "Проверка реализуемости", sub: "Наличие, цены, сроки, поставщики" },
+  "/estimates": { title: "Сметы и ценообразование — сводка", sub: "Сметный отдел: сметы, отклонения, КП" },
+  "/estimates/editor": { title: "Смета и позиции", sub: "Материалы, труд, машины · накладные, прибыль, НДС" },
+  "/estimates/volumes": { title: "Ведомость объёмов работ", sub: "План и факт объёмов, проверка" },
+  "/estimates/rates": { title: "Расценки и цены", sub: "Справочник расценок и цены поставщиков" },
+  "/estimates/offers": { title: "Коммерческие предложения", sub: "Наценка, итоговая цена, R3/R4" },
+  "/estimates/plan-fact": { title: "План-факт анализ", sub: "Объёмы и стоимость, прогноз, отклонения" },
+  "/estimates/changes": { title: "Изменения сметы", sub: "Версии, change order, причины изменений" },
   "/employees": { title: "Сотрудники и структура организации", sub: "Кадры и подразделения" },
   "/agents": { title: "ИИ-агенты и их статусы", sub: "Режимы работы и человек в контуре" },
   "/reports": { title: "Отчёты и риски", sub: "Аналитика, KPI и управление рисками" },

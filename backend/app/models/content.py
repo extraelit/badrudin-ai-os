@@ -16,6 +16,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
+    Numeric,
     String,
     Text,
     Uuid,
@@ -112,6 +113,53 @@ class DailyReport(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     approved_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+
+
+class DailyReportWorkItem(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """Фактически выполненные объёмы работ (DATABASE.md раздел 9.2).
+
+    Каждая фактическая работа связывается с позицией сметы (план-факт), проектом,
+    объектом, зоной/участком, датой, количеством, единицей, прорабом,
+    подтверждающим файлом и статусом проверки.
+    """
+
+    __tablename__ = "daily_report_work_items"
+
+    daily_report_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("daily_reports.id"), nullable=True
+    )
+    estimate_position_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("estimate_positions.id"), nullable=True
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
+    site_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("sites.id"), nullable=True
+    )
+    location_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("project_locations.id"), nullable=True
+    )
+    work_date: Mapped[date] = mapped_column(Date)
+    work_type: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    unit_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("units_of_measure.id"), nullable=True
+    )
+    planned_quantity: Mapped[float | None] = mapped_column(
+        Numeric(14, 3), nullable=True
+    )
+    actual_quantity: Mapped[float] = mapped_column(Numeric(14, 3), default=0)
+    cumulative_quantity: Mapped[float | None] = mapped_column(
+        Numeric(14, 3), nullable=True
+    )
+    foreman_employee_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("employees.id"), nullable=True
+    )
+    evidence_file_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("files.id"), nullable=True
+    )
+    # pending | verified | rejected
+    verification_status: Mapped[str] = mapped_column(String(16), default="pending")
+    verified_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
 
 class Notification(UUIDPrimaryKeyMixin, TimestampMixin, Base):

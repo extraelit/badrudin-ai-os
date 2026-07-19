@@ -30,6 +30,10 @@
     { "code": "design.brief.approve" },
     { "code": "design.release" },
     { "code": "design.issue.manage" },
-    { "code": "supplier.view" }
+    { "code": "supplier.view" },
+    { "code": "estimate.view" },
+    { "code": "estimate.manage" },
+    { "code": "estimate.approve" },
+    { "code": "offer.approve" }
   ]
 }
