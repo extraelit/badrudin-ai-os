@@ -33,6 +33,7 @@ from sqlalchemy import (
     UniqueConstraint,
     Uuid,
     false,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -357,6 +358,13 @@ class StockReservation(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     quantity: Mapped[Decimal] = mapped_column(Numeric(14, 3), default=0)
     # active | released | consumed
     status: Mapped[str] = mapped_column(String(16), default="active")
+    # ручное резервирование склада: кто, до какого срока, причина, снятие
+    reserved_by_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    reserved_until: Mapped[date | None] = mapped_column(Date, nullable=True)
+    reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    released_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 # ------------------- Поступление и входной контроль ---------------------- #
@@ -441,6 +449,10 @@ class InventoryBalance(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     quantity: Mapped[Decimal] = mapped_column(Numeric(16, 3), default=0)
     reserved_quantity: Mapped[Decimal] = mapped_column(Numeric(16, 3), default=0)
+    # точка дозаказа (неснижаемый остаток) — сигнал о низком остатке
+    minimum_quantity: Mapped[Decimal] = mapped_column(
+        Numeric(16, 3), default=0, server_default=text("0"), nullable=False
+    )
     average_unit_cost: Mapped[Decimal] = mapped_column(Numeric(14, 2), default=0)
     currency: Mapped[str] = mapped_column(String(3), default="RUB")
 
