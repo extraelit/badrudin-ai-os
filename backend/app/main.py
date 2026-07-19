@@ -29,6 +29,7 @@ from app.api import (
     personnel,
     procurement,
     risk,
+    smm,
     task_control,
 )
 from app.core.config import get_settings
@@ -65,6 +66,7 @@ def create_app() -> FastAPI:
     app.include_router(agents.router)
     app.include_router(risk.router)
     app.include_router(integration.router)
+    app.include_router(smm.router)
     app.include_router(personnel.router)
     app.include_router(design.router)
     app.include_router(estimates.router)
