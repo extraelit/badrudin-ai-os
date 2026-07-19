@@ -42,6 +42,9 @@
     { "code": "crm.view" },
     { "code": "crm.manage" },
     { "code": "deal.approve" },
-    { "code": "crm.contact.pii" }
+    { "code": "crm.contact.pii" },
+    { "code": "budget.view" },
+    { "code": "budget.manage" },
+    { "code": "budget.approve" }
   ]
 }
