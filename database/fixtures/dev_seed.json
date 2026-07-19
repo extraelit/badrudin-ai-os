@@ -47,6 +47,7 @@
     { "code": "procurement.view" },
     { "code": "procurement.manage" },
     { "code": "procurement.approve" },
+    { "code": "warehouse.view" },
     { "code": "warehouse.manage" },
     { "code": "crm.view" },
     { "code": "crm.manage" },
@@ -71,13 +72,13 @@
       "daily_report.view", "daily_report.manage", "daily_report.approve",
       "audit.view", "finance.view", "budget.view", "personnel.view",
       "procurement.view", "procurement.manage", "procurement.approve",
-      "warehouse.manage", "estimate.view", "crm.view",
+      "warehouse.view", "warehouse.manage", "estimate.view", "crm.view",
       "accountable.view", "accountable.manage", "accountable.approve"
     ],
     "foreman": [
       "project.view", "site.manage", "task.view", "task.execute",
       "daily_report.view", "daily_report.manage",
-      "procurement.view", "procurement.manage",
+      "procurement.view", "procurement.manage", "warehouse.view",
       "accountable.view", "accountable.manage"
     ],
     "accountant": [
