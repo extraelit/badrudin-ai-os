@@ -143,17 +143,39 @@ class MaterialRequest(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base
     location_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("project_locations.id"), nullable=True
     )
+    # задача-основание (§33.6) — заявка по проекту, объекту и задаче
+    task_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("tasks.id"), nullable=True
+    )
     number: Mapped[str | None] = mapped_column(String(64), nullable=True)
     requested_by: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("employees.id"), nullable=True
     )
+    # ответственный за исполнение заявки сотрудник
+    responsible_employee_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("employees.id"), nullable=True
+    )
     priority: Mapped[str] = mapped_column(String(16), default="normal")
+    # критическая операция → согласование R4 + MFA
+    is_critical: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false(), nullable=False
+    )
     needed_by: Mapped[date | None] = mapped_column(Date, nullable=True)
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # draft | submitted | approved | rejected | converted | closed
+    # draft | submitted | pending_approval | approved | rejected |
+    # reserved | partially_issued | issued | closed | cancelled
     status: Mapped[str] = mapped_column(String(16), default="draft")
+    risk_level: Mapped[str] = mapped_column(String(2), default="R0")
     approval_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("approvals.id"), nullable=True
+    )
+    decided_by_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    decided_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    rejection_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    closed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
 
 
@@ -176,6 +198,11 @@ class MaterialRequestLine(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     description: Mapped[str | None] = mapped_column(String(500), nullable=True)
     quantity: Mapped[Decimal] = mapped_column(Numeric(14, 3), default=0)
+    # исполнение строки: зарезервировано / выдано / возвращено (частичная выдача)
+    reserved_quantity: Mapped[Decimal] = mapped_column(Numeric(14, 3), default=0)
+    issued_quantity: Mapped[Decimal] = mapped_column(Numeric(14, 3), default=0)
+    returned_quantity: Mapped[Decimal] = mapped_column(Numeric(14, 3), default=0)
+    # open | reserved | partially_issued | issued | rejected | closed
     status: Mapped[str] = mapped_column(String(16), default="open")
 
 
@@ -464,13 +491,38 @@ class MaterialIssue(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
         ForeignKey("sites.id"), nullable=True
     )
     warehouse_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("warehouses.id"))
+    # заявка-основание выдачи (частичная выдача по заявке)
+    material_request_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("material_requests.id"), nullable=True
+    )
     number: Mapped[str | None] = mapped_column(String(64), nullable=True)
     issue_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     issued_to: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("employees.id"), nullable=True
     )
+    issued_by: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("employees.id"), nullable=True
+    )
     # draft | posted
     status: Mapped[str] = mapped_column(String(16), default="draft")
+    # подтверждение получения: pending | confirmed | disputed
+    acknowledgement_status: Mapped[str] = mapped_column(
+        String(16), default="pending"
+    )
+    acknowledged_by: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("employees.id"), nullable=True
+    )
+    acknowledged_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    dispute_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # доказательства выдачи/получения — существующие documents/files
+    evidence_document_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("documents.id"), nullable=True
+    )
+    evidence_file_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("files.id"), nullable=True
+    )
     notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
 
@@ -481,6 +533,9 @@ class MaterialIssueLine(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     material_issue_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("material_issues.id")
+    )
+    material_request_line_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("material_request_lines.id"), nullable=True
     )
     material_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("materials.id"))
     estimate_position_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -524,13 +579,30 @@ class MaterialReturn(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     warehouse_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("warehouses.id"))
     material_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("materials.id"))
+    # связь возврата с заявкой и выдачей-основанием
+    material_request_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("material_requests.id"), nullable=True
+    )
+    material_issue_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("material_issues.id"), nullable=True
+    )
     quantity: Mapped[Decimal] = mapped_column(Numeric(14, 3), default=0)
     # from_site | to_supplier
     return_type: Mapped[str] = mapped_column(String(16), default="from_site")
     number: Mapped[str | None] = mapped_column(String(64), nullable=True)
     return_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # draft | posted | confirmed
     status: Mapped[str] = mapped_column(String(16), default="draft")
+    confirmed_by: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("employees.id"), nullable=True
+    )
+    confirmed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    evidence_document_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("documents.id"), nullable=True
+    )
 
 
 class WriteOffDocument(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
