@@ -34,6 +34,18 @@ const NAV: NavGroup[] = [
     ],
   },
   {
+    section: "CRM и продажи",
+    items: [
+      { href: "/crm", label: "Сводка и аналитика", icon: "reports" },
+      { href: "/crm/leads", label: "Лиды", icon: "employees", badge: "7", badgeWarn: true },
+      { href: "/crm/deals", label: "Сделки и воронка", icon: "finance" },
+      { href: "/crm/counterparties", label: "Заказчики и контакты", icon: "sites" },
+      { href: "/crm/communications", label: "Центр коммуникаций", icon: "documents" },
+      { href: "/crm/contracts", label: "Договоры", icon: "approvals", badge: "2", badgeWarn: true },
+      { href: "/crm/offers", label: "Коммерческие предложения", icon: "tasks" },
+    ],
+  },
+  {
     section: "Операции",
     items: [
       { href: "/finance", label: "Финансы и бюджеты", icon: "finance" },
@@ -108,6 +120,13 @@ const TITLES: Record<string, { title: string; sub: string }> = {
   "/sites": { title: "Строительные объекты и проектные работы", sub: "Портфель проектов компании" },
   "/tasks": { title: "Задачи, сроки и просрочки", sub: "Контроль исполнения поручений" },
   "/approvals": { title: "Согласования R0–R4", sub: "Человек в контуре критических решений" },
+  "/crm": { title: "CRM — сводка и аналитика продаж", sub: "Воронка, конверсия, план-факт по менеджерам" },
+  "/crm/leads": { title: "Лиды", sub: "Источники, квалификация и конвертация в сделку" },
+  "/crm/deals": { title: "Сделки и воронка продаж", sub: "Этапы, выигрыш R3, крупная сделка R4 + MFA" },
+  "/crm/counterparties": { title: "Заказчики и контактные лица", sub: "Карточки клиентов, контакты и согласия на ПДн" },
+  "/crm/communications": { title: "Единый центр коммуникаций", sub: "Письма, звонки, встречи; сообщение → задача" },
+  "/crm/contracts": { title: "Договоры", sub: "Согласование R3/R4, основание для проекта" },
+  "/crm/offers": { title: "Коммерческие предложения", sub: "Переиспользование commercial_offers сметного модуля" },
   "/finance": { title: "Финансы и бюджеты", sub: "План-факт, кассовый прогноз, подотчётные" },
   "/procurement": { title: "Снабжение и закупки — сводка", sub: "Заявки, заказы, поставки, склад" },
   "/procurement/requests": { title: "Заявки на материалы", sub: "Проверка сметы и остатков, согласование R2" },

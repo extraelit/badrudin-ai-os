@@ -38,6 +38,10 @@
     { "code": "procurement.view" },
     { "code": "procurement.manage" },
     { "code": "procurement.approve" },
-    { "code": "warehouse.manage" }
+    { "code": "warehouse.manage" },
+    { "code": "crm.view" },
+    { "code": "crm.manage" },
+    { "code": "deal.approve" },
+    { "code": "crm.contact.pii" }
   ]
 }

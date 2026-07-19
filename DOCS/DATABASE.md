@@ -607,6 +607,11 @@ maintenance
 internal
 ```
 
+Примечание (миграция 0014_crm): поле `customer_id` формализовано как внешний
+ключ на `counterparties.id` (заказчик проекта — контрагент CRM). Проект
+создаётся из выигранной сделки при утверждённом/подписанном договоре
+(см. раздел 34).
+
 ### 6.1A. Таблица `sites`
 
 Назначение: строительный объект (площадка) — первоклассная сущность в составе
@@ -1152,26 +1157,31 @@ link_type
 
 ### 10.4. Таблица `communications`
 
-Назначение: входящие и исходящие сообщения.
+Назначение: входящие и исходящие сообщения — единый центр коммуникаций CRM
+(письма, звонки, встречи, сообщения мессенджеров). Реализована в модуле «Ядро
+CRM» (миграция 0014_crm).
 
 Основные поля:
 
 ```text
 id
 organization_id
+counterparty_id
+contact_id
+lead_id
+deal_id
 project_id
 channel
 external_message_id
 thread_id
 direction
-sender
-recipients
 subject
 body_text
-received_at
-sent_at
+occurred_at
 classification
 processing_status
+responsible_employee_id
+linked_task_id
 ```
 
 Значения `channel`:
@@ -1183,7 +1193,18 @@ telegram
 web_form
 internal_chat
 manual
+call
+meeting
 ```
+
+Примечания:
+
+- сообщение может порождать задачу (`tasks`) — связь через `linked_task_id`,
+  без дублирования; `processing_status` принимает `new | processed |
+  task_created | ignored`;
+- `direction` — `inbound | outbound | internal`; отправитель/получатели
+  представлены ссылками на контрагента/контакт и ответственного сотрудника
+  (`sender`/`recipients` из ранней редакции заменены нормализованными связями).
 
 ### 10.5. Таблица `files`
 
@@ -1237,10 +1258,14 @@ notes
 
 ### 11.2. Таблица `counterparty_contacts`
 
+Назначение: контактные лица контрагента. Реализована в модуле «Ядро CRM»
+(миграция 0014_crm).
+
 Основные поля:
 
 ```text
 id
+organization_id
 counterparty_id
 full_name
 position
@@ -1248,7 +1273,20 @@ email
 phone
 messenger
 is_primary
+consent_given
+consent_date
+status
+notes
 ```
+
+Примечания по защите ПДн (решение владельца):
+
+- телефон (`phone`) и e-mail (`email`) — персональные данные; их просмотр в
+  открытом виде требует права `crm.contact.pii`. Для остальных пользователей
+  значения маскируются на уровне сервиса, в ответе выставляется признак
+  `pii_masked`;
+- хранится согласие на обработку (`consent_given`) и его дата (`consent_date`);
+- в тестовой среде используются только обезличенные данные (D-011).
 
 ### 11.3. Таблица `suppliers`
 
@@ -1503,6 +1541,8 @@ file_id
 ### 16.1. Таблица `contracts`
 
 Назначение: договоры с заказчиками, подрядчиками, поставщиками и арендодателями.
+Реализована в модуле «Ядро CRM» (миграция 0014_crm); связывает контрагента,
+сделку, коммерческое предложение и проект.
 
 Основные поля:
 
@@ -1510,20 +1550,33 @@ file_id
 id
 organization_id
 counterparty_id
+deal_id
+commercial_offer_id
 project_id
+document_id
 contract_type
 number
-signed_at
-start_date
-end_date
 subject
 amount
 currency
 payment_terms
+signed_at
+start_date
+end_date
 status
+risk_level
 responsible_employee_id
-document_id
+approval_id
 ```
+
+Примечания:
+
+- утверждение/подписание проходит согласование через общий контур `approvals`:
+  `R3` — обычный договор, `R4 + MFA` — крупный (порог организации, `crm_settings`);
+- `status`: `draft | pending_approval | approved | signed | active | closed |
+  cancelled`; файл договора хранится через `documents`;
+- подписанный/утверждённый договор — основание для создания проекта из
+  выигранной сделки (см. раздел 34).
 
 ### 16.2. Таблица `budgets`
 
@@ -4272,3 +4325,194 @@ SUPPLIER
 Бизнес-смысл и содержательные требования не изменены; изменения касаются
 унификации имён и устранения дублирующих определений.
 
+
+---
+
+## 34. Ядро CRM: продажи и воронка
+
+Раздел документирует продажный и клиентский контур CRM, реализованный в модуле
+«Ядро CRM» (миграция 0014_crm). Контур переиспользует существующие сущности без
+дублирования: заказчики — `counterparties` (11.1), контактные лица —
+`counterparty_contacts` (11.2), коммуникации — `communications` (10.4), договоры
+— `contracts` (16.1), коммерческие предложения — `commercial_offers` (сметный
+модуль), задачи менеджеров — `tasks` (7), согласования — `approvals` (8.1),
+проекты — `projects` (6.1), документы/файлы — `documents`/`files` (10), аудит —
+`audit_events` (20).
+
+Цепочка сущностей: **lead → deal → commercial_offer → contract → project**.
+Проект создаётся только после выигранной сделки и утверждённого/подписанного
+договора; все значимые переходы фиксируются в `audit_events`.
+
+### 34.1. Таблица `crm_settings`
+
+Настройки CRM организации (порог крупной сделки/договора).
+
+```text
+id
+organization_id
+currency
+deal_r4_amount_threshold
+```
+
+Порог `deal_r4_amount_threshold` задаётся владельцем на уровне организации
+(значение по умолчанию — 10 000 000 ₽): сумма ≥ порога → согласование `R4 + MFA`,
+иначе `R3`.
+
+### 34.2. Таблица `lead_sources`
+
+Справочник источников лидов (сайт, звонок, рекомендация, выставка и т. п.).
+
+```text
+id
+organization_id
+code
+name
+status
+```
+
+### 34.3. Таблица `pipeline_stages`
+
+Настраиваемые этапы воронки продаж (решение владельца — этапы настраиваемые, а не
+фиксированный перечень).
+
+```text
+id
+organization_id
+code
+name
+sort_order
+probability_percent
+is_won
+is_lost
+status
+```
+
+Признаки `is_won`/`is_lost` помечают выигранный и проигранный этап. Стандартный
+начальный набор этапов создаётся сервисом/тестовыми данными: новый лид,
+квалифицирован, коммерческое предложение, переговоры, договор, выиграна,
+проиграна.
+
+### 34.4. Таблица `deal_loss_reasons`
+
+Справочник причин проигрыша сделки (для аналитики продаж).
+
+```text
+id
+organization_id
+code
+name
+status
+```
+
+### 34.5. Таблица `leads`
+
+Лид — входящий интерес потенциального клиента до квалификации.
+
+```text
+id
+organization_id
+lead_source_id
+counterparty_id
+number
+title
+description
+contact_name
+contact_phone
+contact_email
+company_name
+estimated_amount
+currency
+status
+responsible_employee_id
+converted_deal_id
+qualified_at
+rejected_reason
+```
+
+Значения `status`: `new | qualified | converted | rejected`. Контактные данные
+(`contact_phone`, `contact_email`) — ПДн: маскируются для пользователей без права
+`crm.contact.pii`. Квалифицированный лид конвертируется в сделку
+(`converted_deal_id`).
+
+### 34.6. Таблица `deals`
+
+Сделка: движение по воронке, сумма, исход и связи с КП/договором/проектом.
+
+```text
+id
+organization_id
+counterparty_id
+lead_id
+pipeline_stage_id
+commercial_offer_id
+contract_id
+project_id
+number
+title
+description
+amount
+currency
+status
+risk_level
+responsible_employee_id
+expected_close_date
+closed_at
+loss_reason_id
+loss_comment
+approval_id
+```
+
+Значения `status`: `open | won | lost`. Перемещение по воронке — `R2`; перевод в
+«выиграна» — `R3` (крупная сделка — `R4 + MFA`) через `approvals`. Коммерческое
+предложение не дублируется — сделка ссылается на `commercial_offers`.
+
+### 34.7. Таблица `deal_stage_history`
+
+История перемещений сделки по этапам воронки (для аналитики конверсии).
+
+```text
+id
+deal_id
+from_stage_id
+to_stage_id
+changed_by
+note
+```
+
+### 34.8. Таблица `sales_targets`
+
+Цель менеджера по продажам на период (для план-факта). Факт берётся из выигранных
+сделок (`deals`) без дублирования; здесь хранится только план.
+
+```text
+id
+organization_id
+employee_id
+period_year
+period_month
+target_amount
+target_deals_count
+currency
+notes
+```
+
+### 34.9. Права доступа CRM
+
+- `crm.view` — просмотр сущностей CRM;
+- `crm.manage` — создание и изменение лидов, сделок, договоров, коммуникаций,
+  справочников и целей;
+- `deal.approve` — согласование выигрыша сделки, согласование/подписание
+  договора и создание проекта из сделки;
+- `crm.contact.pii` — просмотр телефонов и e-mail контактов и лидов в открытом
+  виде.
+
+Изоляция (ABAC): сущности CRM ограничены организацией пользователя; для сделки,
+связанной с проектом, дополнительно проверяется доступ к проекту (членство в
+`project_members` или временный доступ `project_access`).
+
+### 34.10. Аналитика продаж
+
+Сводная аналитика строится по `deals`, `pipeline_stages`, `deal_loss_reasons` и
+`sales_targets` без дублирования: количество и сумма сделок, конверсия по этапам
+(воронка), выигранные/проигранные сделки, причины проигрыша, показатели по
+ответственным менеджерам и план-факт (цель против выигранных сумм).
