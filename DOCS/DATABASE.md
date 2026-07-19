@@ -1580,7 +1580,10 @@ approval_id
 
 ### 16.2. Таблица `budgets`
 
-Назначение: бюджет проекта или организации.
+Назначение: бюджет проекта. Реализована в модуле «Финансы и бюджеты» (миграция
+0015_finance). Базовый бюджет формируется из утверждённой сметы
+(`source_estimate_id`); утверждение — R3, крупный бюджет — R4 + MFA
+(порог организации, `finance_settings`).
 
 Основные поля:
 
@@ -1588,17 +1591,33 @@ approval_id
 id
 organization_id
 project_id
+source_estimate_id
 name
 version
 period_start
 period_end
 currency
 status
+planned_total
+approved_total
+risk_level
 approved_by
 approved_at
+approval_id
+notes
 ```
 
+`status`: `draft | pending_approval | approved | superseded | closed`.
+
 ### 16.3. Таблица `budget_lines`
+
+Статьи бюджета. Реализована в модуле «Финансы и бюджеты» (миграция 0015_finance).
+Базовые статьи формируются из итогов сметы (материалы/труд/машины/накладные/
+прибыль); ручная статья (`is_manual`) допускается только для расхода вне сметы,
+с обязательным источником (`source_reference`) и согласованием (`approval_id`).
+`committed_amount`/`actual_amount`/`forecast_amount` — расчётные значения; факт и
+обязательства агрегируются сервисом финансовой сводки из заказов/договоров/ФОТ и
+не копируются в бюджет.
 
 Основные поля:
 
@@ -1606,6 +1625,7 @@ approved_at
 id
 budget_id
 parent_line_id
+expense_category_id
 cost_code
 category
 description
@@ -1614,11 +1634,20 @@ approved_amount
 committed_amount
 actual_amount
 forecast_amount
+source
+is_manual
+source_reference
+status
+approval_id
 ```
 
 ### 16.4. Таблица `financial_commitments`
 
-Назначение: обязательства, возникшие по заказам, договорам и решениям.
+Назначение: ручные финансовые обязательства («решения»). Реализована в модуле
+«Финансы и бюджеты» (миграция 0015_finance). Обязательства по заказам
+(`purchase_orders`) и договорам (`contracts`) агрегируются сервисом напрямую (без
+дублирования); эта таблица хранит только ручные обязательства, не покрытые
+заказами/договорами (аренда, разовые решения). Крупное обязательство — R4 + MFA.
 
 Основные поля:
 
@@ -1626,17 +1655,66 @@ forecast_amount
 id
 organization_id
 project_id
+budget_line_id
 counterparty_id
+document_id
 source_type
-source_id
+source_reference
 description
 amount
 currency
 due_date
 status
+risk_level
+approval_id
 ```
 
+`status`: `open | settled | cancelled`.
+
+### 16.4A. Таблица `finance_settings`
+
+Настройки финансов организации (реализована в 0015_finance). Порог крупной
+финансовой операции задаётся владельцем на уровне организации; значение по
+умолчанию — 10 000 000 ₽: сумма ≥ порога → R4 + MFA, иначе R3.
+
+```text
+id
+organization_id
+currency
+large_operation_threshold
+```
+
+### 16.4B. Таблица `expense_categories`
+
+Общий справочник статей затрат (реализована в 0015_finance). Переиспользуется
+статьями бюджета (`budget_lines.expense_category_id`) и будущим модулем
+подотчётных средств.
+
+```text
+id
+organization_id
+parent_id
+code
+name
+kind
+status
+```
+
+`kind`: `material | labor | machine | subcontract | overhead | other`.
+
+Примечание по объёму MVP модуля «Финансы и бюджеты»: реализованы бюджеты, статьи
+бюджета, финансовые обязательства и финансовая сводка проекта (план/обязательства/
+факт/остаток/прогноз, агрегация без дублирования; экспорт CSV/JSON). Счета
+(`invoices`), заявки на оплату (`payment_requests`) и платежи (`payments`) —
+следующий этап; подотчётные средства (раздел 32) — отдельный будущий модуль.
+Система не проводит банковских операций.
+
 ### 16.5. Таблица `invoices`
+
+Счета к оплате. Реализована в модуле «Финансы и бюджеты» (миграция
+0016_finance_payments). Связывается с договором, обязательством и статьёй
+бюджета; файл счёта — через `documents`. `paid_amount`/`payment_status`
+пересчитываются сервисом по мере регистрации платежей.
 
 Основные поля:
 
@@ -1646,37 +1724,57 @@ organization_id
 project_id
 counterparty_id
 contract_id
+commitment_id
+budget_line_id
+document_id
 invoice_number
 invoice_date
 due_date
 amount
 vat_amount
+paid_amount
 currency
+status
 payment_status
-document_id
+responsible_employee_id
+notes
 ```
+
+`status`: `draft | registered | cancelled`; `payment_status`:
+`unpaid | partially_paid | paid`.
 
 ### 16.6. Таблица `payment_requests`
 
-Назначение: заявка на оплату и маршрут согласования.
+Заявка на оплату счёта и маршрут согласования. Реализована в 0016. Согласование
+через общий контур `approvals`: R3, крупная сумма — R4 + MFA (порог организации
+`finance_settings`). Согласованная заявка — основание для ручной фиксации платежа.
 
 Основные поля:
 
 ```text
 id
+organization_id
 invoice_id
+project_id
+amount
+currency
 requested_by
-requested_at
 planned_payment_date
 priority
 justification
-approval_id
 status
+risk_level
+approval_id
 ```
+
+`status`: `pending | approved | rejected | paid | cancelled`.
 
 ### 16.7. Таблица `payments`
 
-Назначение: отражение статуса платежа, полученного из бухгалтерской или банковской системы.
+Отражение платежа. Реализована в 0016. Система **не выполняет банковских
+операций** (решение владельца): платёж фиксируется вручную либо импортируется из
+бухгалтерии. Повторный ручной ввод идемпотентен по `idempotency_key` — оплата не
+задваивается.
 
 Основные поля:
 
@@ -1686,15 +1784,27 @@ organization_id
 project_id
 counterparty_id
 invoice_id
+payment_request_id
 payment_date
 amount
 currency
 payment_direction
+method
 external_transaction_id
+idempotency_key
 status
+recorded_by
+notes
 ```
 
-ИИ-агенты не должны самостоятельно создавать банковские операции. Они могут подготовить заявку и контролировать её согласование.
+`status`: `recorded | reconciled | cancelled`; `method`:
+`manual | accounting_import`.
+
+ИИ-агенты не должны самостоятельно создавать банковские операции. Они могут
+подготовить заявку и контролировать её согласование. Финансовая сводка проекта
+(управленческий контур: бюджет/обязательства/факт) и регистр к оплате AP
+(`payables-summary`: выставлено/согласовано/оплачено/остаток) — раздельные
+представления; факт по счетам не дублирует управленческий факт.
 
 ---
 

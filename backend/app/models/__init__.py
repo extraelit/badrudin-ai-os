@@ -90,6 +90,16 @@ from app.models.crm import (
     PipelineStage,
     SalesTarget,
 )
+from app.models.finance import (
+    Budget,
+    BudgetLine,
+    ExpenseCategory,
+    FinanceSettings,
+    FinancialCommitment,
+    Invoice,
+    Payment,
+    PaymentRequest,
+)
 from app.models.personnel import (
     DailyReportHeadcount,
     DailyReportIssue,
@@ -205,4 +215,12 @@ __all__ = [
     "Communication",
     "Contract",
     "SalesTarget",
+    "FinanceSettings",
+    "ExpenseCategory",
+    "Budget",
+    "BudgetLine",
+    "FinancialCommitment",
+    "Invoice",
+    "PaymentRequest",
+    "Payment",
 ]
