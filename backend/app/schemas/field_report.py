@@ -16,6 +16,9 @@ class ReportIn(BaseModel):
     work_completed: str | None = None
     problems: str | None = None
     plan_next_day: str | None = None
+    # идемпотентность повторной отправки мобильной формы (§18/§23): клиент передаёт
+    # уникальный ключ на отправку; повтор с тем же ключом не создаёт дубль отчёта
+    client_request_id: str | None = Field(default=None, max_length=64)
 
 
 class ReportOut(BaseModel):

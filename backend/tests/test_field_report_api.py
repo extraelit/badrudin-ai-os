@@ -225,3 +225,21 @@ def test_list_and_summary(db_engine, db_session) -> None:
     reports = client.get(f"/field-reports/projects/{project.id}").json()
     assert len(reports) == 1 and reports[0]["status"] == "draft"
     assert client.get("/field-reports/summary").json()["draft"] == 1
+
+
+def test_idempotent_resubmit_no_duplicate(db_engine, db_session) -> None:
+    """Повторная отправка мобильной формы с тем же client_request_id не создаёт дубль (§18)."""
+    _, project, site, task, emp, user = _make(db_session)
+    client = _client(db_engine, user)
+    body = {"report_date": "2026-07-19", "summary": "Смена отработана", "client_request_id": "req-abc-123"}
+    r1 = client.post(f"/field-reports/projects/{project.id}", json=body)
+    r2 = client.post(f"/field-reports/projects/{project.id}", json=body)
+    assert r1.status_code == 201 and r2.status_code == 201
+    # тот же отчёт, а не второй
+    assert r1.json()["id"] == r2.json()["id"]
+    assert len(client.get(f"/field-reports/projects/{project.id}").json()) == 1
+    # другой ключ — новый отчёт
+    body2 = {**body, "client_request_id": "req-xyz-999"}
+    r3 = client.post(f"/field-reports/projects/{project.id}", json=body2)
+    assert r3.json()["id"] != r1.json()["id"]
+    assert len(client.get(f"/field-reports/projects/{project.id}").json()) == 2

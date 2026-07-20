@@ -99,6 +99,11 @@ class DailyReport(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     reporting_employee_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, nullable=True
     )
+    # идемпотентность повторной отправки мобильной формы (§18/§23): клиент
+    # генерирует уникальный ключ на отправку; повтор с тем же ключом не создаёт дубль
+    client_request_id: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, index=True
+    )
     weather_summary: Mapped[str | None] = mapped_column(String(255), nullable=True)
     workers_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)

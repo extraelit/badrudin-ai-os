@@ -67,12 +67,29 @@ def create_report(
     site_id: uuid.UUID | None = None, weather_summary: str | None = None,
     summary: str | None = None, work_completed: str | None = None,
     problems: str | None = None, plan_next_day: str | None = None,
+    client_request_id: str | None = None,
 ) -> DailyReport:
+    """Создаёт отчёт прораба. Идемпотентно по `client_request_id` (§18/§23):
+
+    при нестабильной связи мобильная форма может отправиться повторно — повтор с тем
+    же ключом не создаёт дубль, а возвращает ранее созданный отчёт того же объекта.
+    """
+    if client_request_id:
+        existing = session.execute(
+            select(DailyReport).where(
+                DailyReport.project_id == project.id,
+                DailyReport.client_request_id == client_request_id,
+                DailyReport.deleted_at.is_(None),
+            )
+        ).scalars().first()
+        if existing is not None:
+            return existing
     report = DailyReport(
         project_id=project.id, site_id=site_id, report_date=report_date,
         reporting_employee_id=user.employee_id, weather_summary=weather_summary,
         summary=summary, work_completed=work_completed, problems=problems,
         plan_next_day=plan_next_day, status="draft", created_by=user.id,
+        client_request_id=client_request_id,
     )
     session.add(report)
     session.flush()

@@ -56,8 +56,14 @@ export default function FieldReportPage() {
 
   async function createReport() {
     if (!projectId) return;
+    // уникальный ключ на отправку: при нестабильной связи повтор не создаёт дубль (§18)
+    const clientRequestId =
+      (globalThis.crypto?.randomUUID?.() ?? `req-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     await run(async () => {
-      const r = await fieldReportApi.create(projectId, { report_date: new Date().toISOString().slice(0, 10), summary: "Смена" });
+      const r = await fieldReportApi.create(projectId, {
+        report_date: new Date().toISOString().slice(0, 10), summary: "Смена",
+        client_request_id: clientRequestId,
+      });
       open(r.id);
     }, "Отчёт создан (черновик)");
   }
