@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_permission
+from app.api.pagination import PageParams, page_params, paginate
 from app.db.session import get_db
 from app.models import AgentProposal, AgentRun, AIAgent, Employee, User
 from app.schemas.agents import (
@@ -96,9 +97,10 @@ def summary(
 @router.get("", response_model=list[AgentOut])
 def list_agents(
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("agent.view")),
 ) -> list[AgentOut]:
-    return [_agent_out(a) for a in svc.list_agents(db, _org(db, user))]
+    return [_agent_out(a) for a in paginate(svc.list_agents(db, _org(db, user)), page)]
 
 
 @router.post("", response_model=AgentOut, status_code=status.HTTP_201_CREATED)
@@ -176,9 +178,11 @@ def record_result(
 def list_proposals(
     status_filter: str | None = Query(None, alias="status"),
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("agent.view")),
 ) -> list[ProposalOut]:
-    return [_prop_out(p) for p in svc.list_proposals(db, user, _org(db, user), status=status_filter)]
+    rows = svc.list_proposals(db, user, _org(db, user), status=status_filter)
+    return [_prop_out(p) for p in paginate(rows, page)]
 
 
 @router.post("/{agent_id}/proposals", response_model=ProposalOut, status_code=status.HTTP_201_CREATED)
