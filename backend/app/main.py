@@ -28,6 +28,7 @@ from app.api import (
     integration,
     inventory,
     kpi,
+    notifications,
     personnel,
     procurement,
     risk,
@@ -70,6 +71,7 @@ def create_app() -> FastAPI:
     app.include_router(integration.router)
     app.include_router(smm.router)
     app.include_router(kpi.router)
+    app.include_router(notifications.router)
     app.include_router(personnel.router)
     app.include_router(design.router)
     app.include_router(estimates.router)
