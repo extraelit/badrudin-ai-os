@@ -127,3 +127,13 @@ def test_api_rejects_out_of_range_limit(db_engine, db_session) -> None:
     assert client.get("/integrations/connectors?limit=0").status_code == 422
     assert client.get("/integrations/connectors?limit=201").status_code == 422
     assert client.get("/integrations/connectors?offset=-1").status_code == 422
+
+
+def test_second_endpoint_shares_bounds(db_engine, db_session) -> None:
+    """Пагинация единообразна: другой списочный эндпоинт также валидирует границы."""
+    org, user = _make(db_session)
+    client = _client(db_engine, user)
+    # исходящие сообщения интеграций доступны тому же пользователю (integration.view)
+    assert client.get("/integrations/outbound?limit=5&offset=0").status_code == 200
+    assert client.get("/integrations/outbound?limit=999").status_code == 422
+    assert client.get("/integrations/outbound?offset=-1").status_code == 422
