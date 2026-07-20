@@ -682,6 +682,12 @@ def list_balances(
     db: Session = Depends(get_db),
     user: User = Depends(require_permission("procurement.view")),
 ) -> list[BalanceOut]:
+    # ABAC/тенант-изоляция: склад должен существовать и принадлежать организации
+    # пользователя, иначе — 404 (нельзя читать остатки чужого/несуществующего склада).
+    org = _org_of(db, user)
+    warehouse = db.get(Warehouse, warehouse_id)
+    if warehouse is None or warehouse.deleted_at is not None or warehouse.organization_id != org:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Склад не найден")
     rows = db.execute(
         select(InventoryBalance).where(InventoryBalance.warehouse_id == warehouse_id)
     ).scalars()
