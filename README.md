@@ -77,6 +77,7 @@
 |---|---|
 | [IMPLEMENTATION_PLAN.md](DOCS/IMPLEMENTATION_PLAN.md) | План реализации Этапа 1 «Технический фундамент» |
 | [TASKS.md](DOCS/TASKS.md) | Задачи Этапа 1 (блоки 1.A–1.J) с зависимостями и критериями приёмки |
+| [LOCAL_RUN.md](DOCS/LOCAL_RUN.md) | Пошаговый безопасный локальный запуск (Windows / macOS) |
 
 ## Структура репозитория
 

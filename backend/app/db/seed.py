@@ -14,8 +14,10 @@ development/test.
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
+import sys
 from pathlib import Path
 
 from sqlalchemy import select
@@ -117,3 +119,75 @@ def load_fixtures(session: Session, path: Path | None = None) -> dict[str, int]:
 
     session.commit()
     return counts
+
+
+def is_seeded(session: Session) -> bool:
+    """Признак того, что демо-данные уже загружены (есть хотя бы одна организация)."""
+    return (
+        session.execute(select(Organization.id).limit(1)).scalars().first() is not None
+    )
+
+
+def seed_if_empty(
+    session: Session, path: Path | None = None
+) -> dict[str, int] | None:
+    """Безопасно (идемпотентно) загружает демо-данные только в пустую БД.
+
+    Возвращает счётчики вставленных строк или `None`, если БД уже засеяна —
+    повторный запуск не создаёт дубликатов.
+    """
+    if is_seeded(session):
+        return None
+    return load_fixtures(session, path)
+
+
+# Окружения, в которых сидирование разрешено без явного подтверждения.
+SEEDABLE_ENVIRONMENTS = ("development", "test")
+
+
+def main(argv: list[str] | None = None) -> int:
+    """CLI безопасного сидирования: `python -m app.db.seed`.
+
+    По умолчанию работает только в development/test и идемпотентно (пропускает уже
+    засеянную БД). Флаг `--force` разрешает загрузку вне dev/test осознанно.
+    """
+    parser = argparse.ArgumentParser(
+        prog="python -m app.db.seed",
+        description="Безопасная загрузка обезличенных демо-данных (dev/test).",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Разрешить сидирование вне окружений development/test.",
+    )
+    args = parser.parse_args(argv)
+
+    # Импорт здесь, чтобы импорт модуля в тестах не создавал движок БД.
+    from app.core.config import get_settings
+    from app.db.session import SessionLocal
+
+    settings = get_settings()
+    env = settings.app_env.strip().lower()
+    if env not in SEEDABLE_ENVIRONMENTS and not args.force:
+        print(
+            f"Отказано: сидирование в окружении '{settings.app_env}' запрещено. "
+            f"Используйте --force осознанно.",
+            file=sys.stderr,
+        )
+        return 2
+
+    session = SessionLocal()
+    try:
+        result = seed_if_empty(session)
+    finally:
+        session.close()
+
+    if result is None:
+        print("Демо-данные уже загружены — пропуск (идемпотентно).")
+    else:
+        print(f"Демо-данные загружены: {result}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
