@@ -17,6 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_permission
+from app.api.pagination import PageParams, page_params, paginate
 from app.db.session import get_db
 from app.models import (
     AccountableAdvance,
@@ -135,6 +136,7 @@ def list_categories(
 @router.get("/advances", response_model=list[AdvanceOut])
 def list_advances(
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("accountable.view")),
 ) -> list[AdvanceOut]:
     org = _org_id(db, user)
@@ -143,7 +145,9 @@ def list_advances(
             AccountableAdvance.organization_id == org, AccountableAdvance.deleted_at.is_(None)
         ).order_by(AccountableAdvance.created_at.desc())
     ).scalars())
-    return [_adv_out(a) for a in rows if svc.can_access_advance_project(db, user, a)]
+    # ABAC-фильтр по проекту применяется до среза страницы
+    visible = [a for a in rows if svc.can_access_advance_project(db, user, a)]
+    return [_adv_out(a) for a in paginate(visible, page)]
 
 
 @router.post("/advances", response_model=AdvanceOut, status_code=status.HTTP_201_CREATED)
