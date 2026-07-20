@@ -118,7 +118,7 @@ def create_report(
         db, project, user=user, report_date=payload.report_date, site_id=payload.site_id,
         weather_summary=payload.weather_summary, summary=payload.summary,
         work_completed=payload.work_completed, problems=payload.problems,
-        plan_next_day=payload.plan_next_day,
+        plan_next_day=payload.plan_next_day, client_request_id=payload.client_request_id,
     )
     return _out(r)
 
