@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_permission
+from app.api.pagination import PageParams, page_params, paginate
 from app.db.session import get_db
 from app.models import ContentPlanItem, Employee, SocialPublication, User
 from app.schemas.smm import (
@@ -106,9 +107,10 @@ def summary(
 @router.get("/plan", response_model=list[PlanItemOut])
 def list_plan(
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("smm.view")),
 ) -> list[PlanItemOut]:
-    return [_plan_out(i) for i in svc.list_plan(db, user, _org(db, user))]
+    return [_plan_out(i) for i in paginate(svc.list_plan(db, user, _org(db, user)), page)]
 
 
 @router.post("/plan", response_model=PlanItemOut, status_code=status.HTTP_201_CREATED)
@@ -146,9 +148,11 @@ def set_plan_status(
 def list_publications(
     status_filter: str | None = Query(None, alias="status"),
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("smm.view")),
 ) -> list[PublicationOut]:
-    return [_pub_out(p) for p in svc.list_publications(db, user, _org(db, user), status=status_filter)]
+    rows = svc.list_publications(db, user, _org(db, user), status=status_filter)
+    return [_pub_out(p) for p in paginate(rows, page)]
 
 
 @router.post("/publications", response_model=PublicationOut, status_code=status.HTTP_201_CREATED)

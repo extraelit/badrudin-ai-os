@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_permission
+from app.api.pagination import PageParams, page_params, paginate
 from app.db.session import get_db
 from app.models import AuditFinding, Employee, User
 from app.schemas.kpi import (
@@ -74,9 +75,11 @@ def summary(
 def list_findings(
     status_filter: str | None = Query(None, alias="status"),
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("audit.finding.view")),
 ) -> list[FindingOut]:
-    return [_f_out(f) for f in svc.list_findings(db, user, _org(db, user), status=status_filter)]
+    rows = svc.list_findings(db, user, _org(db, user), status=status_filter)
+    return [_f_out(f) for f in paginate(rows, page)]
 
 
 @router.post("/findings", response_model=FindingOut, status_code=status.HTTP_201_CREATED)

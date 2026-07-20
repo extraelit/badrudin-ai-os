@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_permission
+from app.api.pagination import PageParams, page_params, paginate
 from app.db.session import get_db
 from app.models import Employee, ExecutiveDocument, User
 from app.schemas.executive_doc import (
@@ -74,9 +75,11 @@ def list_documents(
     project_id: uuid.UUID | None = Query(None),
     status_filter: str | None = Query(None, alias="status"),
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("pto.view")),
 ) -> list[DocumentOut]:
-    return [_out(d) for d in svc.list_documents(db, user, _org(db, user), project_id=project_id, status=status_filter)]
+    rows = svc.list_documents(db, user, _org(db, user), project_id=project_id, status=status_filter)
+    return [_out(d) for d in paginate(rows, page)]
 
 
 @router.post("/documents", response_model=DocumentOut, status_code=status.HTTP_201_CREATED)

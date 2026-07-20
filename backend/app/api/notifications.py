@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_permission
+from app.api.pagination import PageParams, page_params, paginate
 from app.db.session import get_db
 from app.models import Notification, User
 from app.schemas.notifications import (
@@ -44,9 +45,10 @@ def _guard(exc: svc.NotificationError) -> HTTPException:
 def list_my(
     only_unread: bool = Query(False),
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(get_current_user),
 ) -> list[NotificationOut]:
-    return [_out(n) for n in svc.list_my(db, user, only_unread=only_unread)]
+    return [_out(n) for n in paginate(svc.list_my(db, user, only_unread=only_unread), page)]
 
 
 @router.get("/unread-count", response_model=UnreadCountOut)

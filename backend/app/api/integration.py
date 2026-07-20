@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_permission
+from app.api.pagination import PageParams, page_params, paginate
 from app.db.session import get_db
 from app.models import Employee, IntegrationConnector, OutboundMessage, User
 from app.schemas.integration import (
@@ -87,9 +88,10 @@ def summary(
 @router.get("/connectors", response_model=list[ConnectorOut])
 def list_connectors(
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("integration.view")),
 ) -> list[ConnectorOut]:
-    return [_c_out(c) for c in svc.list_connectors(db, _org(db, user))]
+    return [_c_out(c) for c in paginate(svc.list_connectors(db, _org(db, user)), page)]
 
 
 @router.post("/connectors", response_model=ConnectorOut, status_code=status.HTTP_201_CREATED)
@@ -126,9 +128,11 @@ def set_connector_status(
 def list_outbound(
     status_filter: str | None = Query(None, alias="status"),
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("integration.view")),
 ) -> list[OutboundOut]:
-    return [_m_out(m) for m in svc.list_outbound(db, user, _org(db, user), status=status_filter)]
+    rows = svc.list_outbound(db, user, _org(db, user), status=status_filter)
+    return [_m_out(m) for m in paginate(rows, page)]
 
 
 @router.post("/outbound", response_model=OutboundOut, status_code=status.HTTP_201_CREATED)
