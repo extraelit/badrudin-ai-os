@@ -39,12 +39,16 @@ from app.core.config import get_settings
 from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import RequestIDMiddleware
+from app.core.preflight import check_required_secrets
 
 
 def create_app() -> FastAPI:
     """Создаёт и настраивает экземпляр приложения FastAPI."""
     settings = get_settings()
     configure_logging()
+    # Fail-fast по секретам: в staging/production запуск с заглушками запрещён,
+    # в development выводится предупреждение (см. app.core.preflight).
+    check_required_secrets(settings)
     app = FastAPI(
         title=settings.app_name,
         version=__version__,
