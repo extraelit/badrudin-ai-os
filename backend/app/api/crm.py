@@ -18,6 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_permission
+from app.api.pagination import PageParams, page_params, paginate
 from app.db.session import get_db
 from app.models import (
     Communication,
@@ -235,18 +236,19 @@ def create_loss_reason(
 @router.get("/counterparties", response_model=list[CounterpartyOut])
 def list_counterparties(
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("crm.view")),
 ) -> list[CounterpartyOut]:
     org = _org_id(db, user)
-    rows = db.execute(
+    rows = list(db.execute(
         select(Counterparty).where(
             Counterparty.organization_id == org, Counterparty.deleted_at.is_(None)
         )
-    ).scalars()
+    ).scalars())
     return [
         CounterpartyOut(id=c.id, name=c.name, inn=c.inn,
                         counterparty_type=c.counterparty_type, status=c.status)
-        for c in rows
+        for c in paginate(rows, page)
     ]
 
 
@@ -342,14 +344,15 @@ def _lead_out(lead: Lead, *, allowed: bool) -> LeadOut:
 @router.get("/leads", response_model=list[LeadOut])
 def list_leads(
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("crm.view")),
 ) -> list[LeadOut]:
     org = _org_id(db, user)
     allowed = svc.user_can_view_pii(db, user)
-    rows = db.execute(
+    rows = list(db.execute(
         select(Lead).where(Lead.organization_id == org, Lead.deleted_at.is_(None))
-    ).scalars()
-    return [_lead_out(x, allowed=allowed) for x in rows]
+    ).scalars())
+    return [_lead_out(x, allowed=allowed) for x in paginate(rows, page)]
 
 
 @router.post("/leads", response_model=LeadOut, status_code=status.HTTP_201_CREATED)
@@ -415,13 +418,16 @@ def _deal_out(d: Deal) -> DealOut:
 @router.get("/deals", response_model=list[DealOut])
 def list_deals(
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("crm.view")),
 ) -> list[DealOut]:
     org = _org_id(db, user)
     rows = db.execute(
         select(Deal).where(Deal.organization_id == org, Deal.deleted_at.is_(None))
     ).scalars()
-    return [_deal_out(d) for d in rows if svc.can_access_deal_project(db, user, d)]
+    # ABAC-фильтр применяется до среза страницы
+    visible = [d for d in rows if svc.can_access_deal_project(db, user, d)]
+    return [_deal_out(d) for d in paginate(visible, page)]
 
 
 @router.post("/deals", response_model=DealOut, status_code=status.HTTP_201_CREATED)
@@ -667,15 +673,16 @@ def _comm_out(c: Communication) -> CommunicationOut:
 @router.get("/communications", response_model=list[CommunicationOut])
 def list_communications(
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("crm.view")),
 ) -> list[CommunicationOut]:
     org = _org_id(db, user)
-    rows = db.execute(
+    rows = list(db.execute(
         select(Communication).where(
             Communication.organization_id == org, Communication.deleted_at.is_(None)
         ).order_by(Communication.created_at.desc())
-    ).scalars()
-    return [_comm_out(c) for c in rows]
+    ).scalars())
+    return [_comm_out(c) for c in paginate(rows, page)]
 
 
 @router.post("/communications", response_model=CommunicationOut, status_code=status.HTTP_201_CREATED)

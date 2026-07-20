@@ -17,6 +17,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_permission
+from app.api.pagination import PageParams, page_params, paginate
 from app.db.session import get_db
 from app.models import Employee, StockReservation, User
 from app.schemas.inventory import (
@@ -87,12 +88,16 @@ def list_stock(
     material_id: uuid.UUID | None = None,
     low_only: bool = False,
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("warehouse.view")),
 ) -> list[StockRow]:
     org = _org(db, user)
     if warehouse_id is not None:
         _require_warehouse(db, user, warehouse_id)
-    rows = svc.list_stock(db, org, warehouse_id=warehouse_id, material_id=material_id, low_only=low_only)
+    rows = paginate(
+        svc.list_stock(db, org, warehouse_id=warehouse_id, material_id=material_id, low_only=low_only),
+        page,
+    )
     names = svc.material_names(db, {b.material_id for b in rows})
     return [_stock_row(b, names) for b in rows]
 
@@ -177,12 +182,13 @@ def reservations(
     warehouse_id: uuid.UUID | None = None,
     status_filter: str | None = Query(None, alias="status"),
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("warehouse.view")),
 ) -> list[ReservationOut]:
     org = _org(db, user)
     if warehouse_id is not None:
         _require_warehouse(db, user, warehouse_id)
-    rows = svc.list_reservations(db, org, warehouse_id=warehouse_id, status=status_filter)
+    rows = paginate(svc.list_reservations(db, org, warehouse_id=warehouse_id, status=status_filter), page)
     names = svc.material_names(db, {r.material_id for r in rows})
     return [_res_out(r, names) for r in rows]
 

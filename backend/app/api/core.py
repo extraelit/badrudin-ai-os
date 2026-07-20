@@ -15,6 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_permission
+from app.api.pagination import PageParams, page_params, paginate
 from app.db.session import get_db
 from app.models import (
     Approval,
@@ -87,6 +88,7 @@ def _project_out(p: Project) -> ProjectOut:
 @router.get("/projects", response_model=list[ProjectOut])
 def list_projects(
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("project.view")),
 ) -> list[ProjectOut]:
     org = _org_id(db, user)
@@ -96,7 +98,7 @@ def list_projects(
     ).scalars())
     if allowed is not None:
         rows = [p for p in rows if p.id in allowed]
-    return [_project_out(p) for p in rows]
+    return [_project_out(p) for p in paginate(rows, page)]
 
 
 @router.post("/projects", response_model=ProjectOut, status_code=status.HTTP_201_CREATED)
@@ -163,14 +165,15 @@ def _task_out(t: Task) -> TaskOut:
 def list_tasks(
     project_id: uuid.UUID,
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("task.view")),
 ) -> list[TaskOut]:
     _project(db, user, project_id)
-    rows = db.execute(
+    rows = list(db.execute(
         select(Task).where(Task.project_id == project_id, Task.deleted_at.is_(None))
         .order_by(Task.created_at.desc())
-    ).scalars()
-    return [_task_out(t) for t in rows]
+    ).scalars())
+    return [_task_out(t) for t in paginate(rows, page)]
 
 
 @router.post("/projects/{project_id}/tasks", response_model=TaskOut, status_code=status.HTTP_201_CREATED)
@@ -288,6 +291,7 @@ def _approval_title(db: Session, a: Approval) -> str | None:
 @router.get("/approvals", response_model=list[ApprovalOut])
 def list_approvals(
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("approval.view")),
 ) -> list[ApprovalOut]:
     org = _org_id(db, user)
@@ -301,7 +305,7 @@ def list_approvals(
     return [
         ApprovalOut(id=a.id, entity_type=a.entity_type, entity_id=a.entity_id,
                     approval_type=a.approval_type, status=a.status, title=_approval_title(db, a))
-        for a in rows
+        for a in paginate(rows, page)
     ]
 
 
@@ -337,14 +341,15 @@ def _report_out(r: DailyReport) -> DailyReportOut:
 def list_daily_reports(
     project_id: uuid.UUID,
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("daily_report.view")),
 ) -> list[DailyReportOut]:
     _project(db, user, project_id)
-    rows = db.execute(
+    rows = list(db.execute(
         select(DailyReport).where(DailyReport.project_id == project_id, DailyReport.deleted_at.is_(None))
         .order_by(DailyReport.report_date.desc())
-    ).scalars()
-    return [_report_out(r) for r in rows]
+    ).scalars())
+    return [_report_out(r) for r in paginate(rows, page)]
 
 
 @router.post("/projects/{project_id}/daily-reports", response_model=DailyReportOut, status_code=status.HTTP_201_CREATED)
