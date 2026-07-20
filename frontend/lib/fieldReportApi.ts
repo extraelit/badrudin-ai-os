@@ -47,7 +47,9 @@ export const fieldReportApi = {
   summary: () => api<ReportSummary>("/field-reports/summary"),
   list: (projectId: string) => api<Report[]>(`/field-reports/projects/${projectId}`),
   get: (id: string) => api<ReportDetail>(`/field-reports/${id}`),
-  create: (projectId: string, body: { report_date: string; site_id?: string; summary?: string; weather_summary?: string; plan_next_day?: string }) =>
+  create: (projectId: string, body: { report_date: string; site_id?: string; summary?: string; weather_summary?: string; plan_next_day?: string; client_request_id?: string }) =>
+    // client_request_id обеспечивает идемпотентность повторной отправки формы (§18):
+    // при нестабильной связи повтор с тем же ключом не создаёт дубль отчёта
     api<Report>(`/field-reports/projects/${projectId}`, { method: "POST", body: JSON.stringify(body) }),
   addWorkItem: (id: string, body: { work_type?: string; task_id?: string; planned_quantity?: number; actual_quantity: number }) =>
     api<WorkItem>(`/field-reports/${id}/work-items`, { method: "POST", body: JSON.stringify(body) }),
