@@ -66,6 +66,7 @@
     { "code": "pto.view" },
     { "code": "pto.manage" },
     { "code": "pto.approve" },
+    { "code": "notification.manage" },
     { "code": "procurement.view" },
     { "code": "procurement.manage" },
     { "code": "procurement.approve" },
@@ -104,7 +105,7 @@
       "finance.view", "budget.view", "personnel.view",
       "procurement.view", "procurement.manage", "procurement.approve",
       "warehouse.view", "warehouse.manage", "estimate.view", "crm.view",
-      "pto.view", "pto.manage", "pto.approve",
+      "pto.view", "pto.manage", "pto.approve", "notification.manage",
       "equipment.view", "equipment.manage", "equipment.maintain",
       "accountable.view", "accountable.manage", "accountable.approve"
     ],
