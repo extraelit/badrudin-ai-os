@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_permission
+from app.api.pagination import PageParams, page_params, paginate
 from app.db.session import get_db
 from app.models import Employee, Notification, Task, User
 from app.schemas.task_control import (
@@ -75,9 +76,10 @@ def board(
 @router.get("/overdue", response_model=list[TaskCard])
 def overdue(
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("task.view")),
 ) -> list[TaskCard]:
-    return [_card(t) for t in svc.list_overdue(db, user, _org(db, user))]
+    return [_card(t) for t in paginate(svc.list_overdue(db, user, _org(db, user)), page)]
 
 
 @router.get("/tasks/{task_id}/activity", response_model=list[ActivityOut])
@@ -210,9 +212,11 @@ def _notif_out(n: Notification) -> NotificationOut:
 def notifications(
     unread_only: bool = False,
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("task.view")),
 ) -> list[NotificationOut]:
-    return [_notif_out(n) for n in svc.list_notifications(db, user, unread_only=unread_only)]
+    rows = svc.list_notifications(db, user, unread_only=unread_only)
+    return [_notif_out(n) for n in paginate(rows, page)]
 
 
 @router.post("/notifications/{notification_id}/read", response_model=NotificationOut)

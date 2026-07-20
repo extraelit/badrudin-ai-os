@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_permission
+from app.api.pagination import PageParams, page_params, paginate
 from app.db.session import get_db
 from app.models import Employee, InboxItem, User
 from app.schemas.inbox import (
@@ -75,9 +76,11 @@ def summary(
 def list_items(
     status_filter: str | None = Query(None, alias="status"),
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("inbox.view")),
 ) -> list[ItemOut]:
-    return [_out(i) for i in svc.list_items(db, user, _org(db, user), status=status_filter)]
+    rows = svc.list_items(db, user, _org(db, user), status=status_filter)
+    return [_out(i) for i in paginate(rows, page)]
 
 
 @router.post("", response_model=ItemOut, status_code=status.HTTP_201_CREATED)

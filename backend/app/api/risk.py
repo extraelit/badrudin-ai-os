@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_permission
+from app.api.pagination import PageParams, page_params, paginate
 from app.db.session import get_db
 from app.models import Employee, Risk, User
 from app.schemas.risk import (
@@ -81,9 +82,11 @@ def list_risks(
     status_filter: str | None = Query(None, alias="status"),
     severity: str | None = None,
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("risk.view")),
 ) -> list[RiskOut]:
-    return [_out(r) for r in svc.list_risks(db, user, _org(db, user), status=status_filter, severity=severity)]
+    rows = svc.list_risks(db, user, _org(db, user), status=status_filter, severity=severity)
+    return [_out(r) for r in paginate(rows, page)]
 
 
 @router.post("", response_model=RiskOut, status_code=status.HTTP_201_CREATED)
