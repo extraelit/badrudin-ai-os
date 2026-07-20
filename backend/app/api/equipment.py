@@ -18,6 +18,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_permission
+from app.api.pagination import PageParams, page_params, paginate
 from app.db.session import get_db
 from app.models import (
     Employee,
@@ -146,14 +147,15 @@ def summary(
 @router.get("", response_model=list[EquipmentOut])
 def list_equipment(
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("equipment.view")),
 ) -> list[EquipmentOut]:
     org = _org(db, user)
-    rows = db.execute(
+    rows = list(db.execute(
         select(Equipment).where(Equipment.organization_id == org, Equipment.deleted_at.is_(None))
         .order_by(Equipment.created_at.desc())
-    ).scalars()
-    return [_eq_out(e) for e in rows]
+    ).scalars())
+    return [_eq_out(e) for e in paginate(rows, page)]
 
 
 @router.post("", response_model=EquipmentOut, status_code=status.HTTP_201_CREATED)
@@ -278,15 +280,16 @@ def _mo_out(o: MaintenanceOrder) -> MaintenanceOut:
 @router.get("/maintenance/orders", response_model=list[MaintenanceOut])
 def list_maintenance(
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("equipment.view")),
 ) -> list[MaintenanceOut]:
     org = _org(db, user)
-    rows = db.execute(
+    rows = list(db.execute(
         select(MaintenanceOrder).where(MaintenanceOrder.organization_id == org,
                                        MaintenanceOrder.deleted_at.is_(None))
         .order_by(MaintenanceOrder.created_at.desc())
-    ).scalars()
-    return [_mo_out(o) for o in rows]
+    ).scalars())
+    return [_mo_out(o) for o in paginate(rows, page)]
 
 
 @router.post("/maintenance", response_model=MaintenanceOut, status_code=status.HTTP_201_CREATED)
@@ -369,14 +372,15 @@ def _tool_out(t: Tool) -> ToolOut:
 @router.get("/tools/list", response_model=list[ToolOut])
 def list_tools(
     db: Session = Depends(get_db),
+    page: PageParams = Depends(page_params),
     user: User = Depends(require_permission("equipment.view")),
 ) -> list[ToolOut]:
     org = _org(db, user)
-    rows = db.execute(
+    rows = list(db.execute(
         select(Tool).where(Tool.organization_id == org, Tool.deleted_at.is_(None))
         .order_by(Tool.created_at.desc())
-    ).scalars()
-    return [_tool_out(t) for t in rows]
+    ).scalars())
+    return [_tool_out(t) for t in paginate(rows, page)]
 
 
 @router.post("/tools", response_model=ToolOut, status_code=status.HTTP_201_CREATED)
