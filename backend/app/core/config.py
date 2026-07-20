@@ -5,8 +5,17 @@
 """
 
 from functools import lru_cache
+from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Корень репозитория: backend/app/core/config.py -> parents[3].
+# Нужен, чтобы `.env` и относительный путь файла SQLite резолвились одинаково
+# независимо от рабочего каталога процесса: бутстрап запускается из корня, а
+# uvicorn — из backend/ (DOCS/LOCAL_RUN.md). Без этой привязки приложение читало
+# бы `.env`/БД из другого каталога и не видело бы сидированные данные.
+_REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 class Settings(BaseSettings):
@@ -63,8 +72,29 @@ class Settings(BaseSettings):
         "finance_director,administrator"
     )
 
+    @field_validator("database_url")
+    @classmethod
+    def _anchor_sqlite_path(cls, value: str) -> str:
+        """Привязывает относительный файловый путь SQLite к корню репозитория.
+
+        Иначе `sqlite+pysqlite:///./badrudin_local.db` указывал бы на разные
+        файлы в зависимости от рабочего каталога (бутстрап из корня vs uvicorn
+        из backend/), и приложение не видело бы сидированную БД. На PostgreSQL,
+        а также на абсолютные и in-memory пути не влияет.
+        """
+        marker = ":///"
+        idx = value.find(marker)
+        if not value.startswith("sqlite") or idx == -1:
+            return value
+        scheme, path_part = value[: idx + len(marker)], value[idx + len(marker) :]
+        if not path_part or path_part == ":memory:" or path_part.startswith("/"):
+            return value
+        return f"{scheme}{(_REPO_ROOT / path_part).resolve()}"
+
     model_config = SettingsConfigDict(
-        env_file=".env",
+        # Абсолютный путь к `.env` в корне репозитория: файл находится независимо
+        # от рабочего каталога процесса (см. комментарий к _REPO_ROOT).
+        env_file=_REPO_ROOT / ".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",  # прочие переменные окружения (БД, Redis и т. д.) игнорируются здесь

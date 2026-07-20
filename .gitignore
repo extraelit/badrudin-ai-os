@@ -63,3 +63,7 @@ logs/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Локальная БД SQLite (вариант A локального запуска)
+badrudin_local.db
+*.db
