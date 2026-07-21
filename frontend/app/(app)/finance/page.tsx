@@ -7,6 +7,7 @@ import Link from "next/link";
 import { PageHead, Kpi, Card, Badge } from "../../../components/ui";
 import { finKpis, projectSummary } from "../../../lib/finance";
 import { financeApi } from "../../../lib/financeApi";
+import { coreApi } from "../../../lib/coreApi";
 
 export default function FinanceOverviewPage() {
   const [kpis] = useState(finKpis);
@@ -14,19 +15,26 @@ export default function FinanceOverviewPage() {
   const [live, setLive] = useState(false);
 
   useEffect(() => {
-    financeApi
-      .getSummary("demo")
-      .then((s) => {
-        setSum((prev) => ({
-          ...prev,
-          approvedBudget: s.approved_budget,
-          committed: s.committed,
-          actual: s.actual,
-          remaining: s.remaining,
-          forecast: s.forecast,
-          deviation: s.forecast_deviation,
-        }));
-        setLive(true);
+    // Живая сводка считается по реальному проекту (id — UUID). Берём первый
+    // доступный пользователю проект; если проектов нет, живой вызов не делаем
+    // (иначе backend вернёт 422 на нечисловой id).
+    coreApi
+      .listProjects()
+      .then((projects) => {
+        const projectId = projects[0]?.id;
+        if (!projectId) return;
+        return financeApi.getSummary(projectId).then((s) => {
+          setSum((prev) => ({
+            ...prev,
+            approvedBudget: s.approved_budget,
+            committed: s.committed,
+            actual: s.actual,
+            remaining: s.remaining,
+            forecast: s.forecast,
+            deviation: s.forecast_deviation,
+          }));
+          setLive(true);
+        });
       })
       .catch(() => setLive(false));
   }, []);
