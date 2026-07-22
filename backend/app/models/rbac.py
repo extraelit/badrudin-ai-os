@@ -6,8 +6,17 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 
-from sqlalchemy import Boolean, ForeignKey, String, UniqueConstraint, false
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    String,
+    UniqueConstraint,
+    false,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -37,6 +46,16 @@ class UserRole(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     role_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("roles.id"))
+    # Период действия полномочий должности (ACCESS_CONTROL.md разделы 4, 19).
+    # Права действуют, только пока назначение активно во времени. Правило
+    # активности: valid_from IS NULL или <= now И valid_until IS NULL или > now.
+    # NULL valid_from трактуется как «с начала», NULL valid_until — «бессрочно».
+    valid_from: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=True
+    )
+    valid_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class RolePermission(UUIDPrimaryKeyMixin, TimestampMixin, Base):

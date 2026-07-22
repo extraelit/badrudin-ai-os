@@ -24,21 +24,45 @@ from app.models import (
 )
 
 
+def active_role_ids(session: Session, user_id: uuid.UUID) -> set[uuid.UUID]:
+    """Идентификаторы ролей с действующим на текущий момент периодом полномочий.
+
+    Роль учитывается, только если её назначение активно во времени
+    (ACCESS_CONTROL.md разделы 4, 19). Правило: `valid_from` пусто или уже
+    наступило И `valid_until` пусто или ещё не наступило. Пустой `valid_from`
+    трактуется как «с начала», пустой `valid_until` — «бессрочно». Просроченные
+    и будущие назначения прав не дают.
+    """
+    now = datetime.now(UTC)
+    ids: set[uuid.UUID] = set()
+    for ur in session.execute(
+        select(UserRole).where(UserRole.user_id == user_id)
+    ).scalars():
+        vf = _as_aware(ur.valid_from)
+        vu = _as_aware(ur.valid_until)
+        if (vf is None or vf <= now) and (vu is None or vu > now):
+            ids.add(ur.role_id)
+    return ids
+
+
 def get_role_codes(session: Session, user_id: uuid.UUID) -> set[str]:
+    role_ids = active_role_ids(session, user_id)
+    if not role_ids:
+        return set()
     rows = session.execute(
-        select(Role.code)
-        .join(UserRole, UserRole.role_id == Role.id)
-        .where(UserRole.user_id == user_id)
+        select(Role.code).where(Role.id.in_(role_ids))
     ).all()
     return {r[0] for r in rows}
 
 
 def get_permission_codes(session: Session, user_id: uuid.UUID) -> set[str]:
+    role_ids = active_role_ids(session, user_id)
+    if not role_ids:
+        return set()
     rows = session.execute(
         select(Permission.code)
         .join(RolePermission, RolePermission.permission_id == Permission.id)
-        .join(UserRole, UserRole.role_id == RolePermission.role_id)
-        .where(UserRole.user_id == user_id)
+        .where(RolePermission.role_id.in_(role_ids))
     ).all()
     return {r[0] for r in rows}
 
