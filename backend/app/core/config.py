@@ -72,6 +72,12 @@ class Settings(BaseSettings):
         "finance_director,administrator"
     )
 
+    # WebAuthn / FIDO2 passkey (персональные аппаратные/платформенные ключи).
+    # RP ID — домен без схемы и порта; origin — полный источник фронтенда.
+    webauthn_rp_id: str = "localhost"
+    webauthn_rp_name: str = "Badrudin AI OS"
+    webauthn_rp_origin: str = "http://localhost:3000"
+
     @field_validator("database_url")
     @classmethod
     def _anchor_sqlite_path(cls, value: str) -> str:

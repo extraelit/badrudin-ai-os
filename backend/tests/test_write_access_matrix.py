@@ -31,6 +31,13 @@ PUBLIC_OR_PERSONAL = {
     "/auth/login",
     "/auth/logout",
     "/auth/mfa/verify",
+    # генерация резервных кодов MFA — личное действие над своей учётной записью
+    "/auth/mfa/recovery-codes",
+    # регистрация/вход по passkey — личные/публичные церемонии WebAuthn
+    "/auth/webauthn/register/begin",
+    "/auth/webauthn/register/complete",
+    "/auth/webauthn/authenticate/begin",
+    "/auth/webauthn/authenticate/complete",
     "/notifications/read-all",
 }
 

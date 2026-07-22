@@ -36,6 +36,8 @@ PUBLIC_OR_PERSONAL = {
     "/auth/me",
     # личный эндпоинт: показывает статус резервных кодов MFA самого пользователя
     "/auth/mfa/recovery-codes",
+    # личный эндпоинт: список ключей passkey самого пользователя
+    "/auth/webauthn/credentials",
     "/notifications",
     "/notifications/unread-count",
 }

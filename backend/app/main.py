@@ -35,6 +35,7 @@ from app.api import (
     risk,
     smm,
     task_control,
+    webauthn,
 )
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
@@ -89,6 +90,7 @@ def create_app() -> FastAPI:
     app.include_router(finance.router)
     app.include_router(accountable.router)
     app.include_router(normative.router)
+    app.include_router(webauthn.router)
     return app
 
 

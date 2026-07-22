@@ -154,6 +154,7 @@ from app.models.task import (
     TaskUpdate,
 )
 from app.models.mfa_recovery import MfaRecoveryCode
+from app.models.webauthn import WebAuthnCredential
 from app.models.user import User
 
 __all__ = [
@@ -164,6 +165,7 @@ __all__ = [
     "Employee",
     "User",
     "MfaRecoveryCode",
+    "WebAuthnCredential",
     "Role",
     "Permission",
     "UserRole",
