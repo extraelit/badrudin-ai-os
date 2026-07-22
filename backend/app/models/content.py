@@ -21,9 +21,14 @@ from sqlalchemy import (
     Text,
     Uuid,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import event
+from sqlalchemy.orm import Mapped, Mapper, mapped_column
 
 from app.db.base import Base, SoftDeleteMixin, TimestampMixin, UUIDPrimaryKeyMixin
+
+
+class DocumentIntegrityError(RuntimeError):
+    """Попытка удалить утверждённый (заблокированный) документ/версию/файл."""
 
 
 class File(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
@@ -48,6 +53,13 @@ class File(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     virus_scan_status: Mapped[str] = mapped_column(String(32), default="pending")
     confidentiality_level: Mapped[str] = mapped_column(String(32), default="internal")
     metadata_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    # Блокировка целостности: после утверждения файл-носитель неизменяем и
+    # неудаляем (защита от подделки; ACCESS_CONTROL.md разделы 20–21). NULL —
+    # не заблокирован; заполняется при утверждении версии документа.
+    locked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    locked_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
 
 
 class Document(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
@@ -67,6 +79,12 @@ class Document(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     status: Mapped[str] = mapped_column(String(32), default="draft")
     confidentiality_level: Mapped[str] = mapped_column(String(32), default="internal")
     current_version_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    # Блокировка после утверждения: содержимое меняется только новой версией,
+    # запись не удаляется (только архивируется, is_archived). NULL — не заблокирован.
+    locked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    locked_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
     registered_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
@@ -86,6 +104,14 @@ class DocumentVersion(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     prepared_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
     approved_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
     status: Mapped[str] = mapped_column(String(32), default="draft")
+    approved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # Утверждённая версия неизменяема и неудаляема (append-only история версий).
+    locked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    locked_by: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
 
 
 class DailyReport(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
@@ -202,3 +228,22 @@ class Notification(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         DateTime(timezone=True), nullable=True
     )
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+# --- Защита целостности утверждённых документов (ACCESS_CONTROL.md 20–21) ---
+# Заблокированные (утверждённые) файл, версия и документ не удаляются на уровне
+# сессии ORM — это защита от подделки задним числом. Изменение допускается только
+# через выпуск новой версии; сам документ архивируется (is_archived), а не удаляется.
+
+
+def _forbid_locked_delete(mapper: Mapper, connection, target) -> None:
+    if getattr(target, "locked_at", None) is not None:
+        raise DocumentIntegrityError(
+            "Утверждённый документ/версия/файл нельзя удалить: заблокирован "
+            "(допустимы только новая версия или архивирование)."
+        )
+
+
+event.listen(File, "before_delete", _forbid_locked_delete)
+event.listen(Document, "before_delete", _forbid_locked_delete)
+event.listen(DocumentVersion, "before_delete", _forbid_locked_delete)
