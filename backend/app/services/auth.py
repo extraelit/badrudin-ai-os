@@ -42,6 +42,16 @@ def verify_totp(secret: str, code: str) -> bool:
     return pyotp.TOTP(secret).verify(code, valid_window=1)
 
 
+def auth_level_for(session: Session, user: User) -> str:
+    """Применённый уровень аутентификации для журнала аудита.
+
+    `mfa` — если для роли пользователя MFA обязательна (второй фактор реально
+    применялся при входе), иначе `password`. Passkey/WebAuthn будет добавлен
+    отдельным контуром.
+    """
+    return "mfa" if _mfa_required_for(session, user) else "password"
+
+
 def authenticate(
     session: Session, email: str, password: str, mfa_code: str | None = None
 ) -> User:
