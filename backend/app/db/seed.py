@@ -25,9 +25,11 @@ from sqlalchemy.orm import Session
 
 from app.core.security import hash_password
 from app.models import (
+    Department,
     Employee,
     Organization,
     Permission,
+    Position,
     Role,
     RolePermission,
     User,
@@ -53,6 +55,7 @@ def load_fixtures(session: Session, path: Path | None = None) -> dict[str, int]:
     data = json.loads((path or DEFAULT_FIXTURE).read_text(encoding="utf-8"))
     counts = {
         "organizations": 0, "roles": 0, "permissions": 0,
+        "departments": 0, "positions": 0,
         "role_permissions": 0, "employees": 0, "users": 0, "user_roles": 0,
     }
 
@@ -72,6 +75,28 @@ def load_fixtures(session: Session, path: Path | None = None) -> dict[str, int]:
     roles = {r.code: r for r in session.execute(select(Role)).scalars()}
     perms = {p.code: p for p in session.execute(select(Permission)).scalars()}
 
+    # Подразделения (по ссылке ref) — организационная структура.
+    dept_by_ref: dict[str, Department] = {}
+    for row in data.get("departments", []):
+        ref = row.pop("ref", None)
+        dept = Department(organization_id=org.id, **row)
+        session.add(dept)
+        session.flush()
+        if ref:
+            dept_by_ref[ref] = dept
+        counts["departments"] += 1
+
+    # Должности (по ссылке ref) — профиль должности с уровнем согласования.
+    pos_by_ref: dict[str, Position] = {}
+    for row in data.get("positions", []):
+        ref = row.pop("ref", None)
+        pos = Position(organization_id=org.id, **row)
+        session.add(pos)
+        session.flush()
+        if ref:
+            pos_by_ref[ref] = pos
+        counts["positions"] += 1
+
     # Связки роль → право.
     for role_code, perm_codes in data.get("role_permissions", {}).items():
         role = roles.get(role_code)
@@ -85,11 +110,20 @@ def load_fixtures(session: Session, path: Path | None = None) -> dict[str, int]:
             counts["role_permissions"] += 1
     session.flush()
 
-    # Демо-сотрудники (по ссылке ref).
+    # Демо-сотрудники (по ссылке ref). Должность и подразделение — по своим ref.
     emp_by_ref: dict[str, Employee] = {}
     for row in data.get("employees", []):
         ref = row.pop("ref", None)
-        emp = Employee(organization_id=org.id, **row)
+        dept_ref = row.pop("department_ref", None)
+        pos_ref = row.pop("position_ref", None)
+        dept = dept_by_ref.get(dept_ref) if dept_ref else None
+        pos = pos_by_ref.get(pos_ref) if pos_ref else None
+        emp = Employee(
+            organization_id=org.id,
+            department_id=dept.id if dept else None,
+            position_id=pos.id if pos else None,
+            **row,
+        )
         session.add(emp)
         session.flush()
         if ref:
