@@ -186,6 +186,11 @@ def submit_for_review(session, process, *, actor_user_id, executor_comment=None)
     _require_status(process, ("in_progress",))
     if actor_user_id != process.primary_executor_id:
         raise WorkflowError("Отправить на проверку может только исполнитель")
+    # Evidence Gate: нельзя отправить на проверку без обязательных доказательств
+    # (либо по недостающему типу должно быть утверждено исключение) — §2.2.
+    from app.services.evidence import assert_gate_satisfied
+
+    assert_gate_satisfied(session, process)
     process.status = "submitted_for_review"
     process.submitted_at = _now()
     if executor_comment is not None:
