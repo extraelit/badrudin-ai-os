@@ -139,6 +139,7 @@ from app.models.smm import (
     SocialPublicationAsset,
 )
 from app.models.risk import Risk
+from app.models.workflow import WorkflowProcess
 from app.models.normative import (
     NormativeDocument,
     ProjectNormativeItem,
@@ -211,6 +212,7 @@ __all__ = [
     "ToolAssignment",
     "InboxItem",
     "Risk",
+    "WorkflowProcess",
     "NormativeDocument",
     "ProjectNormativeProfile",
     "ProjectNormativeItem",
