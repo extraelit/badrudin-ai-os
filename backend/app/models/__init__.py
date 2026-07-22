@@ -148,6 +148,7 @@ from app.models.task import (
     TaskEvidence,
     TaskUpdate,
 )
+from app.models.mfa_recovery import MfaRecoveryCode
 from app.models.user import User
 
 __all__ = [
@@ -157,6 +158,7 @@ __all__ = [
     "Position",
     "Employee",
     "User",
+    "MfaRecoveryCode",
     "Role",
     "Permission",
     "UserRole",

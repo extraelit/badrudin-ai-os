@@ -14,11 +14,14 @@ from app.schemas.auth import (
     CurrentUser,
     LoginRequest,
     MFAVerifyRequest,
+    RecoveryCodesResponse,
+    RecoveryStatusResponse,
     TokenResponse,
 )
 from app.services.access import get_permission_codes, get_role_codes
 from app.services.audit import record_event
 from app.services.auth import AuthError, authenticate, verify_totp
+from app.services.mfa_recovery import generate_recovery_codes, remaining_count
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -88,3 +91,46 @@ def mfa_verify(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверный код MFA"
         )
     return {"status": "ok"}
+
+
+@router.post("/mfa/recovery-codes", response_model=RecoveryCodesResponse)
+def generate_mfa_recovery_codes(
+    payload: MFAVerifyRequest,
+    current: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> RecoveryCodesResponse:
+    # Генерация кодов — чувствительное действие: требуем повторного подтверждения
+    # действующим кодом TOTP (step-up). Прежние неиспользованные коды аннулируются.
+    if not current.mfa_enabled or not current.mfa_secret:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="MFA не настроена для пользователя",
+        )
+    if not verify_totp(current.mfa_secret, payload.code):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверный код MFA"
+        )
+    codes = generate_recovery_codes(db, current.id)
+    # В журнал попадает факт перевыпуска и их число, но НЕ сами коды.
+    record_event(
+        db,
+        actor_type="user",
+        action="auth.mfa.recovery_codes.generate",
+        actor_user_id=current.id,
+        organization_id=None,
+        new_values={"count": len(codes)},
+        risk_level="R2",
+    )
+    return RecoveryCodesResponse(codes=codes, count=len(codes))
+
+
+@router.get("/mfa/recovery-codes", response_model=RecoveryStatusResponse)
+def mfa_recovery_status(
+    current: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> RecoveryStatusResponse:
+    # Число оставшихся кодов (сами коды не возвращаются — их видно лишь при выпуске)
+    return RecoveryStatusResponse(
+        mfa_enabled=current.mfa_enabled,
+        remaining=remaining_count(db, current.id),
+    )

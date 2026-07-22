@@ -27,3 +27,17 @@ class CurrentUser(BaseModel):
     employee_id: str | None = None
     roles: list[str] = []
     permissions: list[str] = []
+
+
+class RecoveryCodesResponse(BaseModel):
+    """Комплект одноразовых кодов восстановления MFA (показывается один раз)."""
+
+    codes: list[str]
+    count: int
+
+
+class RecoveryStatusResponse(BaseModel):
+    """Состояние резервных кодов: включена ли MFA и сколько кодов осталось."""
+
+    mfa_enabled: bool
+    remaining: int
