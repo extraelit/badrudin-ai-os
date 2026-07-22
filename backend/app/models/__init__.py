@@ -139,6 +139,11 @@ from app.models.smm import (
     SocialPublicationAsset,
 )
 from app.models.risk import Risk
+from app.models.normative import (
+    NormativeDocument,
+    ProjectNormativeItem,
+    ProjectNormativeProfile,
+)
 from app.models.rbac import Permission, Role, RolePermission, UserRole
 from app.models.task import (
     Approval,
@@ -204,6 +209,9 @@ __all__ = [
     "ToolAssignment",
     "InboxItem",
     "Risk",
+    "NormativeDocument",
+    "ProjectNormativeProfile",
+    "ProjectNormativeItem",
     "IntegrationConnector",
     "OutboundMessage",
     "ContentPlanItem",
