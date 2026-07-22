@@ -1,14 +1,30 @@
 {
-  "_note": "Тестовые (обезличенные) данные для среды разработки. Не содержат реальных персональных данных и секретов (D-011). Пароль демо-пользователей задаётся переменной окружения SEED_DEMO_PASSWORD (по умолчанию — демо-значение, только для development).",
+  "_note": "Тестовые (обезличенные) данные для среды разработки. Не содержат реальных персональных данных и секретов (D-011). Пароль демо-пользователей задаётся переменной окружения SEED_DEMO_PASSWORD (по умолчанию — демо-значение, только для development). Этап 1 «Фундамент доступа и целостности»: персональные аккаунты по должностям (без общих логинов), профиль должности (подразделение + уровень согласования), права должности через существующие коды разрешений.",
   "organizations": [
     { "legal_name": "ООО «Экстра-Элит» (ТЕСТ)", "short_name": "Экстра-Элит ТЕСТ" }
   ],
   "roles": [
     { "code": "system_owner", "name": "Владелец системы", "is_system": true },
     { "code": "general_director", "name": "Генеральный директор" },
+    { "code": "executive_director", "name": "Исполнительный директор" },
     { "code": "production_director", "name": "Производственный директор" },
+    { "code": "chief_engineer", "name": "Главный инженер" },
+    { "code": "project_manager", "name": "Руководитель проекта" },
+    { "code": "site_manager", "name": "Начальник участка" },
     { "code": "foreman", "name": "Прораб" },
+    { "code": "master", "name": "Мастер" },
+    { "code": "pto_engineer", "name": "Инженер ПТО" },
+    { "code": "construction_control_engineer", "name": "Инженер строительного контроля" },
+    { "code": "hse_specialist", "name": "Специалист по охране труда и ТБ" },
+    { "code": "supply", "name": "Специалист по снабжению" },
+    { "code": "storekeeper", "name": "Кладовщик" },
+    { "code": "mechanic", "name": "Механик" },
     { "code": "accountant", "name": "Бухгалтер" },
+    { "code": "lawyer", "name": "Юрист" },
+    { "code": "hr_specialist", "name": "Специалист по кадрам" },
+    { "code": "clerk", "name": "Делопроизводитель" },
+    { "code": "executor", "name": "Исполнитель (рабочий)" },
+    { "code": "external_contractor", "name": "Внешний подрядчик" },
     { "code": "viewer", "name": "Наблюдатель" }
   ],
   "permissions": [
@@ -90,7 +106,72 @@
     { "code": "accountable.approve" },
     { "code": "accountable.account" }
   ],
+  "departments": [
+    { "ref": "dep_management", "name": "Управление", "code": "MGMT" },
+    { "ref": "dep_production", "name": "Производственный отдел", "code": "PROD" },
+    { "ref": "dep_pto", "name": "Производственно-технический отдел (ПТО)", "code": "PTO" },
+    { "ref": "dep_control", "name": "Строительный контроль", "code": "SK" },
+    { "ref": "dep_hse", "name": "Охрана труда и ТБ", "code": "OTIB" },
+    { "ref": "dep_supply", "name": "Снабжение и склад", "code": "SUP" },
+    { "ref": "dep_mechanization", "name": "Механизация", "code": "MECH" },
+    { "ref": "dep_accounting", "name": "Бухгалтерия", "code": "ACC" },
+    { "ref": "dep_legal", "name": "Юридический отдел", "code": "LEGAL" },
+    { "ref": "dep_hr", "name": "Отдел кадров", "code": "HR" },
+    { "ref": "dep_office", "name": "Канцелярия", "code": "OFFICE" }
+  ],
+  "positions": [
+    { "ref": "pos_gen_director", "name": "Генеральный директор", "code": "general_director", "approval_level": 5 },
+    { "ref": "pos_exec_director", "name": "Исполнительный директор", "code": "executive_director", "approval_level": 4 },
+    { "ref": "pos_chief_engineer", "name": "Главный инженер", "code": "chief_engineer", "approval_level": 4 },
+    { "ref": "pos_project_manager", "name": "Руководитель проекта", "code": "project_manager", "approval_level": 3 },
+    { "ref": "pos_site_manager", "name": "Начальник участка", "code": "site_manager", "approval_level": 2 },
+    { "ref": "pos_foreman", "name": "Прораб", "code": "foreman", "approval_level": 2 },
+    { "ref": "pos_master", "name": "Мастер", "code": "master", "approval_level": 1 },
+    { "ref": "pos_pto_engineer", "name": "Инженер ПТО", "code": "pto_engineer", "approval_level": 1 },
+    { "ref": "pos_control_engineer", "name": "Инженер строительного контроля", "code": "construction_control_engineer", "approval_level": 2 },
+    { "ref": "pos_hse", "name": "Специалист по охране труда и ТБ", "code": "hse_specialist", "approval_level": 1 },
+    { "ref": "pos_supply", "name": "Специалист по снабжению", "code": "supply", "approval_level": 1 },
+    { "ref": "pos_storekeeper", "name": "Кладовщик", "code": "storekeeper", "approval_level": 0 },
+    { "ref": "pos_mechanic", "name": "Механик", "code": "mechanic", "approval_level": 1 },
+    { "ref": "pos_accountant", "name": "Бухгалтер", "code": "accountant", "approval_level": 1 },
+    { "ref": "pos_lawyer", "name": "Юрист", "code": "lawyer", "approval_level": 1 },
+    { "ref": "pos_hr", "name": "Специалист по кадрам", "code": "hr_specialist", "approval_level": 1 },
+    { "ref": "pos_clerk", "name": "Делопроизводитель", "code": "clerk", "approval_level": 0 },
+    { "ref": "pos_executor", "name": "Исполнитель (рабочий)", "code": "executor", "approval_level": 0 },
+    { "ref": "pos_contractor", "name": "Внешний подрядчик", "code": "external_contractor", "approval_level": 0 }
+  ],
   "role_permissions": {
+    "general_director": [
+      "management.view", "project.view", "project.create", "project.manage",
+      "task.view", "task.approve", "approval.view", "approval.decide",
+      "finance.view", "budget.view", "budget.approve", "payment.approve",
+      "estimate.view", "estimate.approve", "offer.approve", "deal.approve",
+      "pto.view", "pto.approve", "risk.view", "risk.approve",
+      "agent.view", "agent.approve", "kpi.view", "audit.view",
+      "audit.finding.view", "audit.finding.resolve",
+      "personnel.view", "payroll.view", "payroll.approve",
+      "daily_report.view", "daily_report.approve",
+      "design.view", "design.brief.approve", "design.release",
+      "procurement.view", "procurement.approve",
+      "accountable.view", "accountable.approve",
+      "smm.view", "smm.approve", "integration.view", "integration.approve"
+    ],
+    "executive_director": [
+      "management.view", "project.view", "project.create", "project.manage", "site.manage",
+      "task.view", "task.create", "task.approve", "task.assign", "approval.view", "approval.decide",
+      "budget.view", "budget.approve", "payment.request", "payment.approve",
+      "procurement.view", "procurement.manage", "procurement.approve",
+      "estimate.view", "estimate.approve", "pto.view", "pto.approve",
+      "risk.view", "risk.manage", "risk.approve",
+      "agent.view", "agent.manage", "agent.approve", "kpi.view", "audit.view",
+      "audit.finding.view", "audit.finding.manage", "audit.finding.resolve",
+      "personnel.view", "personnel.manage", "payroll.view", "payroll.approve",
+      "daily_report.view", "daily_report.manage", "daily_report.approve",
+      "equipment.view", "equipment.manage", "warehouse.view", "warehouse.manage",
+      "accountable.view", "accountable.manage", "accountable.approve",
+      "integration.view", "integration.manage", "smm.view", "smm.manage",
+      "crm.view", "crm.manage", "deal.approve", "notification.manage"
+    ],
     "production_director": [
       "project.view", "project.create", "project.manage", "site.manage",
       "task.view", "task.create", "task.approve", "task.assign", "task.execute",
@@ -109,6 +190,32 @@
       "equipment.view", "equipment.manage", "equipment.maintain",
       "accountable.view", "accountable.manage", "accountable.approve"
     ],
+    "chief_engineer": [
+      "management.view", "project.view", "project.manage", "site.manage",
+      "task.view", "task.create", "task.approve", "task.assign", "approval.view", "approval.decide",
+      "pto.view", "pto.manage", "pto.approve", "estimate.view", "estimate.manage", "estimate.approve",
+      "design.view", "design.manage", "design.brief.approve", "design.release", "design.issue.manage",
+      "risk.view", "risk.manage", "safety.manage",
+      "daily_report.view", "daily_report.manage", "daily_report.approve",
+      "equipment.view", "equipment.manage", "equipment.maintain", "warehouse.view",
+      "procurement.view", "procurement.manage", "kpi.view",
+      "audit.finding.view", "audit.finding.manage", "audit.finding.resolve"
+    ],
+    "project_manager": [
+      "management.view", "project.view", "project.manage", "site.manage",
+      "task.view", "task.create", "task.approve", "task.assign", "approval.view", "approval.decide",
+      "budget.view", "procurement.view", "procurement.manage",
+      "estimate.view", "estimate.manage", "pto.view", "pto.manage",
+      "risk.view", "risk.manage", "daily_report.view", "daily_report.manage", "daily_report.approve",
+      "equipment.view", "warehouse.view", "kpi.view", "crm.view",
+      "accountable.view", "accountable.manage", "notification.manage"
+    ],
+    "site_manager": [
+      "project.view", "site.manage", "task.view", "task.create", "task.assign", "task.execute",
+      "approval.view", "daily_report.view", "daily_report.manage",
+      "procurement.view", "procurement.manage", "warehouse.view",
+      "equipment.view", "equipment.manage", "accountable.view", "accountable.manage", "pto.view"
+    ],
     "foreman": [
       "project.view", "site.manage", "task.view", "task.execute",
       "daily_report.view", "daily_report.manage",
@@ -116,22 +223,110 @@
       "equipment.view", "equipment.manage",
       "accountable.view", "accountable.manage"
     ],
+    "master": [
+      "project.view", "site.manage", "task.view", "task.execute",
+      "daily_report.view", "daily_report.manage", "warehouse.view", "equipment.view"
+    ],
+    "pto_engineer": [
+      "project.view", "pto.view", "pto.manage", "estimate.view", "estimate.manage",
+      "design.view", "design.manage", "task.view", "daily_report.view", "kpi.view",
+      "procurement.view", "warehouse.view"
+    ],
+    "construction_control_engineer": [
+      "project.view", "task.view", "daily_report.view", "daily_report.approve",
+      "audit.finding.view", "audit.finding.manage", "audit.finding.resolve",
+      "risk.view", "risk.manage", "safety.manage", "equipment.view", "pto.view",
+      "design.issue.manage"
+    ],
+    "hse_specialist": [
+      "project.view", "safety.manage", "task.view", "daily_report.view",
+      "audit.finding.view", "audit.finding.manage", "audit.finding.resolve",
+      "risk.view", "risk.manage", "equipment.view"
+    ],
+    "supply": [
+      "project.view", "procurement.view", "procurement.manage", "supplier.view",
+      "warehouse.view", "warehouse.manage", "estimate.view", "equipment.view",
+      "budget.view", "payment.request"
+    ],
+    "storekeeper": [
+      "project.view", "warehouse.view", "warehouse.manage", "procurement.view",
+      "equipment.view", "daily_report.view"
+    ],
+    "mechanic": [
+      "project.view", "equipment.view", "equipment.manage", "equipment.maintain",
+      "warehouse.view", "task.view", "task.execute", "daily_report.view"
+    ],
     "accountant": [
       "project.view", "finance.view", "budget.view", "payroll.view", "audit.view",
+      "invoice.manage", "payment.request", "estimate.view",
       "accountable.view", "accountable.account"
+    ],
+    "lawyer": [
+      "project.view", "crm.view", "crm.contact.pii", "supplier.view",
+      "audit.view", "risk.view", "pto.view", "design.view"
+    ],
+    "hr_specialist": [
+      "project.view", "personnel.view", "personnel.manage", "payroll.view", "kpi.view"
+    ],
+    "clerk": [
+      "project.view", "inbox.view", "inbox.manage", "notification.manage",
+      "pto.view", "daily_report.view"
+    ],
+    "executor": [
+      "project.view", "task.view", "task.execute",
+      "daily_report.view", "daily_report.manage", "warehouse.view"
+    ],
+    "external_contractor": [
+      "project.view", "task.view", "task.execute", "daily_report.view"
     ],
     "viewer": [
       "project.view", "task.view", "approval.view", "daily_report.view"
     ]
   },
   "employees": [
-    { "ref": "emp_owner", "full_name": "Владелец Системы (ДЕМО)", "work_email": "owner@extra-elit.demo" },
-    { "ref": "emp_director", "full_name": "Производственный Директор (ДЕМО)", "work_email": "director@extra-elit.demo" },
-    { "ref": "emp_foreman", "full_name": "Прораб (ДЕМО)", "work_email": "foreman@extra-elit.demo" }
+    { "ref": "emp_owner", "full_name": "Владелец Системы (ДЕМО)", "work_email": "owner@extra-elit.demo", "department_ref": "dep_management", "personnel_number": "TN-000" },
+    { "ref": "emp_director", "full_name": "Производственный Директор (ДЕМО)", "work_email": "director@extra-elit.demo", "department_ref": "dep_production", "personnel_number": "TN-001" },
+    { "ref": "emp_foreman", "full_name": "Прораб (ДЕМО)", "work_email": "foreman@extra-elit.demo", "department_ref": "dep_production", "position_ref": "pos_foreman", "personnel_number": "TN-002" },
+    { "ref": "emp_gen_director", "full_name": "Генеральный Директор (ДЕМО)", "work_email": "gendirector@extra-elit.demo", "department_ref": "dep_management", "position_ref": "pos_gen_director", "personnel_number": "TN-003" },
+    { "ref": "emp_exec_director", "full_name": "Исполнительный Директор (ДЕМО)", "work_email": "execdirector@extra-elit.demo", "department_ref": "dep_management", "position_ref": "pos_exec_director", "personnel_number": "TN-004" },
+    { "ref": "emp_chief_engineer", "full_name": "Главный Инженер (ДЕМО)", "work_email": "chiefengineer@extra-elit.demo", "department_ref": "dep_production", "position_ref": "pos_chief_engineer", "personnel_number": "TN-005" },
+    { "ref": "emp_project_manager", "full_name": "Руководитель Проекта (ДЕМО)", "work_email": "pm@extra-elit.demo", "department_ref": "dep_production", "position_ref": "pos_project_manager", "personnel_number": "TN-006" },
+    { "ref": "emp_site_manager", "full_name": "Начальник Участка (ДЕМО)", "work_email": "sitemanager@extra-elit.demo", "department_ref": "dep_production", "position_ref": "pos_site_manager", "personnel_number": "TN-007" },
+    { "ref": "emp_master", "full_name": "Мастер (ДЕМО)", "work_email": "master@extra-elit.demo", "department_ref": "dep_production", "position_ref": "pos_master", "personnel_number": "TN-008" },
+    { "ref": "emp_pto_engineer", "full_name": "Инженер ПТО (ДЕМО)", "work_email": "pto@extra-elit.demo", "department_ref": "dep_pto", "position_ref": "pos_pto_engineer", "personnel_number": "TN-009" },
+    { "ref": "emp_control_engineer", "full_name": "Инженер Строительного Контроля (ДЕМО)", "work_email": "control@extra-elit.demo", "department_ref": "dep_control", "position_ref": "pos_control_engineer", "personnel_number": "TN-010" },
+    { "ref": "emp_hse", "full_name": "Специалист по Охране Труда (ДЕМО)", "work_email": "hse@extra-elit.demo", "department_ref": "dep_hse", "position_ref": "pos_hse", "personnel_number": "TN-011" },
+    { "ref": "emp_supply", "full_name": "Специалист по Снабжению (ДЕМО)", "work_email": "supply@extra-elit.demo", "department_ref": "dep_supply", "position_ref": "pos_supply", "personnel_number": "TN-012" },
+    { "ref": "emp_storekeeper", "full_name": "Кладовщик (ДЕМО)", "work_email": "storekeeper@extra-elit.demo", "department_ref": "dep_supply", "position_ref": "pos_storekeeper", "personnel_number": "TN-013" },
+    { "ref": "emp_mechanic", "full_name": "Механик (ДЕМО)", "work_email": "mechanic@extra-elit.demo", "department_ref": "dep_mechanization", "position_ref": "pos_mechanic", "personnel_number": "TN-014" },
+    { "ref": "emp_accountant", "full_name": "Бухгалтер (ДЕМО)", "work_email": "accountant@extra-elit.demo", "department_ref": "dep_accounting", "position_ref": "pos_accountant", "personnel_number": "TN-015" },
+    { "ref": "emp_lawyer", "full_name": "Юрист (ДЕМО)", "work_email": "lawyer@extra-elit.demo", "department_ref": "dep_legal", "position_ref": "pos_lawyer", "personnel_number": "TN-016" },
+    { "ref": "emp_hr", "full_name": "Специалист по Кадрам (ДЕМО)", "work_email": "hr@extra-elit.demo", "department_ref": "dep_hr", "position_ref": "pos_hr", "personnel_number": "TN-017" },
+    { "ref": "emp_clerk", "full_name": "Делопроизводитель (ДЕМО)", "work_email": "clerk@extra-elit.demo", "department_ref": "dep_office", "position_ref": "pos_clerk", "personnel_number": "TN-018" },
+    { "ref": "emp_executor", "full_name": "Исполнитель (ДЕМО)", "work_email": "executor@extra-elit.demo", "department_ref": "dep_production", "position_ref": "pos_executor", "personnel_number": "TN-019" },
+    { "ref": "emp_contractor", "full_name": "Внешний Подрядчик (ДЕМО)", "work_email": "contractor@extra-elit.demo", "department_ref": "dep_production", "position_ref": "pos_contractor", "employment_type": "contractor", "personnel_number": "TN-020" }
   ],
   "users": [
     { "email": "owner@extra-elit.demo", "employee_ref": "emp_owner", "role": "system_owner", "mfa": true },
     { "email": "director@extra-elit.demo", "employee_ref": "emp_director", "role": "production_director", "mfa": false },
-    { "email": "foreman@extra-elit.demo", "employee_ref": "emp_foreman", "role": "foreman", "mfa": false }
+    { "email": "foreman@extra-elit.demo", "employee_ref": "emp_foreman", "role": "foreman", "mfa": false },
+    { "email": "gendirector@extra-elit.demo", "employee_ref": "emp_gen_director", "role": "general_director", "mfa": true },
+    { "email": "execdirector@extra-elit.demo", "employee_ref": "emp_exec_director", "role": "executive_director", "mfa": true },
+    { "email": "chiefengineer@extra-elit.demo", "employee_ref": "emp_chief_engineer", "role": "chief_engineer", "mfa": false },
+    { "email": "pm@extra-elit.demo", "employee_ref": "emp_project_manager", "role": "project_manager", "mfa": false },
+    { "email": "sitemanager@extra-elit.demo", "employee_ref": "emp_site_manager", "role": "site_manager", "mfa": false },
+    { "email": "master@extra-elit.demo", "employee_ref": "emp_master", "role": "master", "mfa": false },
+    { "email": "pto@extra-elit.demo", "employee_ref": "emp_pto_engineer", "role": "pto_engineer", "mfa": false },
+    { "email": "control@extra-elit.demo", "employee_ref": "emp_control_engineer", "role": "construction_control_engineer", "mfa": false },
+    { "email": "hse@extra-elit.demo", "employee_ref": "emp_hse", "role": "hse_specialist", "mfa": false },
+    { "email": "supply@extra-elit.demo", "employee_ref": "emp_supply", "role": "supply", "mfa": false },
+    { "email": "storekeeper@extra-elit.demo", "employee_ref": "emp_storekeeper", "role": "storekeeper", "mfa": false },
+    { "email": "mechanic@extra-elit.demo", "employee_ref": "emp_mechanic", "role": "mechanic", "mfa": false },
+    { "email": "accountant@extra-elit.demo", "employee_ref": "emp_accountant", "role": "accountant", "mfa": true },
+    { "email": "lawyer@extra-elit.demo", "employee_ref": "emp_lawyer", "role": "lawyer", "mfa": false },
+    { "email": "hr@extra-elit.demo", "employee_ref": "emp_hr", "role": "hr_specialist", "mfa": false },
+    { "email": "clerk@extra-elit.demo", "employee_ref": "emp_clerk", "role": "clerk", "mfa": false },
+    { "email": "executor@extra-elit.demo", "employee_ref": "emp_executor", "role": "executor", "mfa": false },
+    { "email": "contractor@extra-elit.demo", "employee_ref": "emp_contractor", "role": "external_contractor", "mfa": false }
   ]
 }
