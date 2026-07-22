@@ -12,6 +12,7 @@ from datetime import date, datetime
 from sqlalchemy import (
     JSON,
     BigInteger,
+    Boolean,
     Date,
     DateTime,
     ForeignKey,
@@ -20,6 +21,7 @@ from sqlalchemy import (
     String,
     Text,
     Uuid,
+    false,
 )
 from sqlalchemy import event
 from sqlalchemy.orm import Mapped, Mapper, mapped_column
@@ -148,6 +150,12 @@ class DailyReport(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     # проверка руководителем (ПТО): кто и с каким комментарием
     reviewed_by_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
     review_comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # день без работ: отчёт «Работы не велись» с обязательной причиной и
+    # подтверждением ответственного (PROCESS_CORE_PLAN.md §6)
+    no_work: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false(), nullable=False
+    )
+    no_work_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class DailyReportWorkItem(UUIDPrimaryKeyMixin, TimestampMixin, Base):

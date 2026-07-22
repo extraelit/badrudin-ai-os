@@ -16,6 +16,7 @@ from app.api import (
     auth,
     core,
     crm,
+    daily_report_ai,
     design,
     digest,
     equipment,
@@ -95,6 +96,7 @@ def create_app() -> FastAPI:
     app.include_router(webauthn.router)
     app.include_router(workflow.router)
     app.include_router(evidence.router)
+    app.include_router(daily_report_ai.router)
     return app
 
 
