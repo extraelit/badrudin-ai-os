@@ -31,6 +31,7 @@ from app.api import (
     kpi,
     normative,
     notifications,
+    quality,
     personnel,
     procurement,
     risk,
@@ -97,6 +98,7 @@ def create_app() -> FastAPI:
     app.include_router(workflow.router)
     app.include_router(evidence.router)
     app.include_router(daily_report_ai.router)
+    app.include_router(quality.router)
     return app
 
 
