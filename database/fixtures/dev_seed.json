@@ -104,7 +104,10 @@
     { "code": "accountable.view" },
     { "code": "accountable.manage" },
     { "code": "accountable.approve" },
-    { "code": "accountable.account" }
+    { "code": "accountable.account" },
+    { "code": "normative.view" },
+    { "code": "normative.manage" },
+    { "code": "normative.confirm" }
   ],
   "departments": [
     { "ref": "dep_management", "name": "Управление", "code": "MGMT" },
@@ -154,7 +157,8 @@
       "design.view", "design.brief.approve", "design.release",
       "procurement.view", "procurement.approve",
       "accountable.view", "accountable.approve",
-      "smm.view", "smm.approve", "integration.view", "integration.approve"
+      "smm.view", "smm.approve", "integration.view", "integration.approve",
+      "normative.view"
     ],
     "executive_director": [
       "management.view", "project.view", "project.create", "project.manage", "site.manage",
@@ -170,7 +174,8 @@
       "equipment.view", "equipment.manage", "warehouse.view", "warehouse.manage",
       "accountable.view", "accountable.manage", "accountable.approve",
       "integration.view", "integration.manage", "smm.view", "smm.manage",
-      "crm.view", "crm.manage", "deal.approve", "notification.manage"
+      "crm.view", "crm.manage", "deal.approve", "notification.manage",
+      "normative.view"
     ],
     "production_director": [
       "project.view", "project.create", "project.manage", "site.manage",
@@ -188,7 +193,8 @@
       "warehouse.view", "warehouse.manage", "estimate.view", "crm.view",
       "pto.view", "pto.manage", "pto.approve", "notification.manage",
       "equipment.view", "equipment.manage", "equipment.maintain",
-      "accountable.view", "accountable.manage", "accountable.approve"
+      "accountable.view", "accountable.manage", "accountable.approve",
+      "normative.view"
     ],
     "chief_engineer": [
       "management.view", "project.view", "project.manage", "site.manage",
@@ -199,7 +205,8 @@
       "daily_report.view", "daily_report.manage", "daily_report.approve",
       "equipment.view", "equipment.manage", "equipment.maintain", "warehouse.view",
       "procurement.view", "procurement.manage", "kpi.view",
-      "audit.finding.view", "audit.finding.manage", "audit.finding.resolve"
+      "audit.finding.view", "audit.finding.manage", "audit.finding.resolve",
+      "normative.view", "normative.manage", "normative.confirm"
     ],
     "project_manager": [
       "management.view", "project.view", "project.manage", "site.manage",
@@ -208,7 +215,8 @@
       "estimate.view", "estimate.manage", "pto.view", "pto.manage",
       "risk.view", "risk.manage", "daily_report.view", "daily_report.manage", "daily_report.approve",
       "equipment.view", "warehouse.view", "kpi.view", "crm.view",
-      "accountable.view", "accountable.manage", "notification.manage"
+      "accountable.view", "accountable.manage", "notification.manage",
+      "normative.view"
     ],
     "site_manager": [
       "project.view", "site.manage", "task.view", "task.create", "task.assign", "task.execute",
@@ -230,7 +238,8 @@
     "pto_engineer": [
       "project.view", "pto.view", "pto.manage", "estimate.view", "estimate.manage",
       "design.view", "design.manage", "task.view", "daily_report.view", "kpi.view",
-      "procurement.view", "warehouse.view"
+      "procurement.view", "warehouse.view",
+      "normative.view", "normative.manage"
     ],
     "construction_control_engineer": [
       "project.view", "task.view", "daily_report.view", "daily_report.approve",
@@ -263,7 +272,8 @@
     ],
     "lawyer": [
       "project.view", "crm.view", "crm.contact.pii", "supplier.view",
-      "audit.view", "risk.view", "pto.view", "design.view"
+      "audit.view", "risk.view", "pto.view", "design.view",
+      "normative.view", "normative.confirm"
     ],
     "hr_specialist": [
       "project.view", "personnel.view", "personnel.manage", "payroll.view", "kpi.view"
