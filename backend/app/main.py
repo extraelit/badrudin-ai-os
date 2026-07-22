@@ -17,6 +17,7 @@ from app.api import (
     core,
     crm,
     daily_report_ai,
+    dashboards,
     design,
     digest,
     equipment,
@@ -101,6 +102,7 @@ def create_app() -> FastAPI:
     app.include_router(daily_report_ai.router)
     app.include_router(quality.router)
     app.include_router(risk_threshold.router)
+    app.include_router(dashboards.router)
     return app
 
 
