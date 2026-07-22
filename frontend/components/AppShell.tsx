@@ -34,6 +34,8 @@ const NAV: NavGroup[] = [
       { href: "/notifications", label: "Уведомления", icon: "bell" },
       { href: "/sites", label: "Объекты и проекты", icon: "sites" },
       { href: "/tasks", label: "Задачи и сроки", icon: "tasks", badge: "9", badgeWarn: true },
+      { href: "/processes", label: "Процессы", icon: "tasks" },
+      { href: "/manager", label: "Панель руководителя", icon: "dashboard" },
       { href: "/tasks/control", label: "Контроль исполнения", icon: "approvals" },
       { href: "/approvals", label: "Согласования", icon: "approvals", badge: "5" },
     ],
