@@ -35,6 +35,7 @@ from app.api import (
     personnel,
     procurement,
     risk,
+    risk_threshold,
     smm,
     evidence,
     task_control,
@@ -99,6 +100,7 @@ def create_app() -> FastAPI:
     app.include_router(evidence.router)
     app.include_router(daily_report_ai.router)
     app.include_router(quality.router)
+    app.include_router(risk_threshold.router)
     return app
 
 

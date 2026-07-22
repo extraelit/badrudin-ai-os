@@ -146,6 +146,7 @@ from app.models.evidence import (
     ProcessEvidence,
 )
 from app.models.quality import QualityControlCard, QualityControlCheck
+from app.models.risk_threshold import RiskThreshold
 from app.models.normative import (
     NormativeDocument,
     ProjectNormativeItem,
@@ -224,6 +225,7 @@ __all__ = [
     "EvidenceExceptionRequest",
     "QualityControlCard",
     "QualityControlCheck",
+    "RiskThreshold",
     "NormativeDocument",
     "ProjectNormativeProfile",
     "ProjectNormativeItem",
