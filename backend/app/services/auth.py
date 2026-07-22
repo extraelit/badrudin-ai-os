@@ -17,6 +17,7 @@ from app.core.config import get_settings
 from app.core.security import verify_password
 from app.models import User
 from app.services.access import get_role_codes
+from app.services.mfa_recovery import verify_and_consume
 
 
 class AuthError(Exception):
@@ -77,7 +78,11 @@ def authenticate(
             )
         if not mfa_code:
             raise AuthError("mfa_required", "Требуется код многофакторной аутентификации")
-        if not verify_totp(user.mfa_secret, mfa_code):
+        # Принимаем либо действующий код TOTP, либо одноразовый код восстановления
+        # (на случай утраты основного средства MFA). Код восстановления гасится.
+        if not verify_totp(user.mfa_secret, mfa_code) and not verify_and_consume(
+            session, user.id, mfa_code
+        ):
             raise AuthError("mfa_invalid", "Неверный код многофакторной аутентификации")
 
     # успех: сбрасываем счётчик, фиксируем вход

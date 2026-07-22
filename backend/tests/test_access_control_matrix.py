@@ -34,6 +34,8 @@ PUBLIC_OR_PERSONAL = {
     "/health",
     "/health/status",
     "/auth/me",
+    # личный эндпоинт: показывает статус резервных кодов MFA самого пользователя
+    "/auth/mfa/recovery-codes",
     "/notifications",
     "/notifications/unread-count",
 }
