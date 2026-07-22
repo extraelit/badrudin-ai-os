@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -20,14 +20,18 @@ from app.schemas.auth import (
 )
 from app.services.access import get_permission_codes, get_role_codes
 from app.services.audit import record_event
-from app.services.auth import AuthError, authenticate, verify_totp
+from app.services.auth import AuthError, authenticate, auth_level_for, verify_totp
 from app.services.mfa_recovery import generate_recovery_codes, remaining_count
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
+def login(
+    payload: LoginRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+) -> TokenResponse:
     try:
         user = authenticate(
             db, str(payload.email), payload.password, mfa_code=payload.mfa_code
@@ -36,14 +40,21 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)
         ) from exc
+    token = create_access_token(subject=str(user.id), extra={"email": user.email})
+    # Идентификатор сессии = jti токена; уровень аутентификации и адрес/агент —
+    # для прослеживаемости входа (ACCESS_CONTROL.md раздел 20).
+    session_id = decode_token(token).get("jti")
     record_event(
         db,
         actor_type="user",
         action="auth.login",
         actor_user_id=user.id,
         organization_id=None,
+        session_id=session_id,
+        auth_level=auth_level_for(db, user),
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
     )
-    token = create_access_token(subject=str(user.id), extra={"email": user.email})
     return TokenResponse(access_token=token)
 
 

@@ -33,7 +33,11 @@ class AuditEvent(UUIDPrimaryKeyMixin, Base):
     )
     # user | agent | system | integration
     actor_type: Mapped[str] = mapped_column(String(32))
-    actor_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    actor_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, nullable=True, index=True
+    )
+    # должность актора на момент действия (снимок; не меняется при переводе)
+    actor_position_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
     actor_agent_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
     action: Mapped[str] = mapped_column(String(128))
     entity_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
@@ -45,6 +49,10 @@ class AuditEvent(UUIDPrimaryKeyMixin, Base):
     request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     ip_address: Mapped[str | None] = mapped_column(String(64), nullable=True)
     user_agent: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    # идентификатор сессии (jti токена) и применённый уровень аутентификации
+    # (password | mfa | passkey) — прослеживаемость входа (ACCESS_CONTROL.md 20)
+    session_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    auth_level: Mapped[str | None] = mapped_column(String(16), nullable=True)
     risk_level: Mapped[str] = mapped_column(String(2), default="R0")
     # журнал не редактируется: только время создания
     created_at: Mapped[datetime] = mapped_column(
