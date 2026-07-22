@@ -34,6 +34,7 @@ from app.api import (
     procurement,
     risk,
     smm,
+    evidence,
     task_control,
     webauthn,
     workflow,
@@ -93,6 +94,7 @@ def create_app() -> FastAPI:
     app.include_router(normative.router)
     app.include_router(webauthn.router)
     app.include_router(workflow.router)
+    app.include_router(evidence.router)
     return app
 
 

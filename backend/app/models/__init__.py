@@ -140,6 +140,11 @@ from app.models.smm import (
 )
 from app.models.risk import Risk
 from app.models.workflow import WorkflowProcess
+from app.models.evidence import (
+    EvidenceExceptionRequest,
+    EvidenceRequirement,
+    ProcessEvidence,
+)
 from app.models.normative import (
     NormativeDocument,
     ProjectNormativeItem,
@@ -213,6 +218,9 @@ __all__ = [
     "InboxItem",
     "Risk",
     "WorkflowProcess",
+    "EvidenceRequirement",
+    "ProcessEvidence",
+    "EvidenceExceptionRequest",
     "NormativeDocument",
     "ProjectNormativeProfile",
     "ProjectNormativeItem",

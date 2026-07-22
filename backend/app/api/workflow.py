@@ -124,9 +124,11 @@ def get_process(
 
 
 def _act(db, p, fn, **kw):
+    from app.services.evidence import EvidenceGateError
+
     try:
         fn(db, p, **kw)
-    except svc.WorkflowError as exc:
+    except (svc.WorkflowError, EvidenceGateError) as exc:
         raise _guard(exc) from exc
     db.commit()
     return _out(p)
