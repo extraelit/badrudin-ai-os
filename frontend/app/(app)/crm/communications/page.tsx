@@ -14,6 +14,7 @@ import {
   type CommTemplate,
   type CommChannel,
   type DeliveryEvent,
+  type Broadcast,
 } from "../../../../lib/commApi";
 
 type Tab = "inbox" | "outbox" | "drafts" | "broadcasts" | "templates" | "contacts" | "channels";
@@ -41,12 +42,14 @@ export default function CommunicationsPage() {
   const [contacts, setContacts] = useState<CommContact[]>([]);
   const [templates, setTemplates] = useState<CommTemplate[]>([]);
   const [channels, setChannels] = useState<CommChannel[]>([]);
+  const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [log, setLog] = useState<{ id: string; events: DeliveryEvent[] } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [ch, setCh] = useState("email");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [addr, setAddr] = useState("");
+  const [bcTitle, setBcTitle] = useState("");
 
   const has = (p: string) => perms.includes("system_owner") || perms.includes(p);
 
@@ -58,6 +61,7 @@ export default function CommunicationsPage() {
     else if (tab === "contacts") commApi.contacts().then(setContacts).catch(() => undefined);
     else if (tab === "templates") commApi.templates().then(setTemplates).catch(() => undefined);
     else if (tab === "channels") commApi.channels().then(setChannels).catch(() => undefined);
+    else if (tab === "broadcasts") commApi.broadcasts().then(setBroadcasts).catch(() => undefined);
   }, [live, tab]);
 
   useEffect(() => {
@@ -86,6 +90,14 @@ export default function CommunicationsPage() {
   async function showLog(id: string) {
     try { setLog({ id, events: await commApi.deliveryLog(id) }); }
     catch (e) { setErr((e as Error).message); }
+  }
+
+  async function createBroadcast() {
+    if (!bcTitle.trim()) { setErr("Укажите название рассылки"); return; }
+    await run(async () => {
+      await commApi.createBroadcast({ channel: ch, title: bcTitle, subject: subject || undefined, body_text: body || undefined });
+      setBcTitle(""); setSubject(""); setBody("");
+    });
   }
 
   if (!live) {
@@ -141,14 +153,63 @@ export default function CommunicationsPage() {
       )}
 
       {tab === "broadcasts" && (
-        <div className="alert">
-          <div className="alert__icon">ℹ</div>
-          <div className="muted" style={{ fontSize: 13 }}>
-            Рассылки (выбор канала, групп контактов, шаблона, вложений, планирование,
-            согласование и отчёт о доставке) готовятся отдельным этапом. Модель сообщений
-            и журнал доставки уже работают.
-          </div>
-        </div>
+        <>
+          {has("communication.manage") && (
+            <Card title="Новая рассылка" flush>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: 14, alignItems: "center" }}>
+                <select className="input" value={ch} onChange={(e) => setCh(e.target.value)}>
+                  {CHANNELS.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <input className="input" placeholder="Название" value={bcTitle}
+                       onChange={(e) => setBcTitle(e.target.value)} style={{ minWidth: 180 }} />
+                <input className="input" placeholder="Тема" value={subject}
+                       onChange={(e) => setSubject(e.target.value)} style={{ minWidth: 160 }} />
+                <input className="input" placeholder="Текст" value={body}
+                       onChange={(e) => setBody(e.target.value)} style={{ minWidth: 200 }} />
+                <button className="btn btn--primary btn--sm" onClick={createBroadcast}>Создать</button>
+              </div>
+              <div className="muted" style={{ fontSize: 12, padding: "0 14px 12px" }}>
+                Получатели добавляются из контактов; согласование, планирование, тестовая
+                отправка и отчёт о доставке — по кнопкам. Реальная отправка выключена (sandbox).
+              </div>
+            </Card>
+          )}
+          <Card title={`Рассылки — ${broadcasts.length}`} flush className="span-2" style={{ marginTop: 12 }}>
+            <div className="table-wrap">
+              <table className="table">
+                <thead><tr><th>Название</th><th>Канал</th><th>Статус</th><th>Получатели</th><th>Отправлено</th><th>Действия</th></tr></thead>
+                <tbody>
+                  {broadcasts.map((b) => (
+                    <tr key={b.id}>
+                      <td className="table__strong">{b.title}</td>
+                      <td className="muted">{b.channel}</td>
+                      <td><Badge tone={ST[b.status] || "gray"}>{b.status}</Badge></td>
+                      <td className="muted">{b.total_count}</td>
+                      <td className="muted">{b.sent_count}/{b.failed_count ? `${b.failed_count} ошиб.` : "0"}</td>
+                      <td>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          {b.status === "draft" && has("communication.manage") && (
+                            <button className="btn btn--sm" onClick={() => run(() => commApi.submitBroadcast(b.id))}>На согласование</button>
+                          )}
+                          {b.status === "pending_approval" && has("communication.approve") && (
+                            <button className="btn btn--sm" onClick={() => run(() => commApi.approveBroadcast(b.id))}>Согласовать</button>
+                          )}
+                          {(b.status === "approved" || b.status === "scheduled") && has("communication.send") && (
+                            <button className="btn btn--sm btn--primary" onClick={() => run(() => commApi.sendBroadcast(b.id))}>Отправить</button>
+                          )}
+                          {b.status === "failed" && has("communication.send") && (
+                            <button className="btn btn--sm" onClick={() => run(() => commApi.retryBroadcast(b.id))}>Повтор</button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {broadcasts.length === 0 && <tr><td colSpan={6} className="muted" style={{ padding: 16 }}>Рассылок нет.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
       )}
 
       {(tab === "inbox" || tab === "outbox" || tab === "drafts") && (

@@ -45,6 +45,16 @@ from app.schemas.communication import (
     TemplateIn,
     TemplateOut,
 )
+from app.models import Broadcast
+from app.schemas.broadcast import (
+    BroadcastIn,
+    BroadcastOut,
+    DeliveryReportOut,
+    PreviewOut,
+    TargetsIn,
+    TestSendIn,
+)
+from app.services import broadcasts as bsvc
 from app.services import communications as svc
 from app.services.access import can_access_project
 
@@ -338,6 +348,158 @@ def approve_template(template_id: uuid.UUID,
     svc.approve_template(db, t, actor_user_id=current.id)
     return TemplateOut(id=t.id, code=t.code, name=t.name, channel=t.channel,
                        subject=t.subject, body_text=t.body_text, is_approved=t.is_approved)
+
+
+# ------------------------------- Рассылки -------------------------------- #
+
+def _broadcast_out(b: Broadcast) -> BroadcastOut:
+    return BroadcastOut(
+        id=b.id, channel=b.channel, title=b.title, subject=b.subject,
+        body_text=b.body_text, project_id=b.project_id, status=b.status,
+        scheduled_at=b.scheduled_at, total_count=b.total_count,
+        sent_count=b.sent_count, failed_count=b.failed_count,
+        author_user_id=b.author_user_id, created_at=b.created_at,
+    )
+
+
+def _broadcast(db: Session, user: User, bid: uuid.UUID) -> Broadcast:
+    b = db.get(Broadcast, bid)
+    if b is None or b.deleted_at is not None or b.organization_id != _org(db, user):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Рассылка не найдена")
+    _check_project(db, user, b.project_id)
+    return b
+
+
+def _bguard(exc: bsvc.BroadcastError) -> HTTPException:
+    return HTTPException(status.HTTP_409_CONFLICT, str(exc))
+
+
+@router.get("/broadcasts", response_model=list[BroadcastOut])
+def list_broadcasts(current: User = Depends(require_permission("communication.view")),
+                    db: Session = Depends(get_db)) -> list[BroadcastOut]:
+    org = _org(db, current)
+    out = []
+    for b in bsvc.list_broadcasts(db, org):
+        if b.project_id is not None and not can_access_project(db, current, b.project_id):
+            continue
+        out.append(_broadcast_out(b))
+    return out
+
+
+@router.post("/broadcasts", response_model=BroadcastOut, status_code=status.HTTP_201_CREATED)
+def create_broadcast(payload: BroadcastIn,
+                     current: User = Depends(require_permission("communication.manage")),
+                     db: Session = Depends(get_db)) -> BroadcastOut:
+    _check_project(db, current, payload.project_id)
+    try:
+        b = bsvc.create_broadcast(
+            db, _org(db, current), channel=payload.channel, title=payload.title,
+            subject=payload.subject, body_text=payload.body_text,
+            template_id=payload.template_id, project_id=payload.project_id,
+            scheduled_at=payload.scheduled_at, author_user_id=current.id,
+        )
+        if payload.contact_ids:
+            bsvc.add_targets(db, b, contact_ids=payload.contact_ids)
+            db.commit()
+    except bsvc.BroadcastError as exc:
+        raise _bguard(exc) from exc
+    return _broadcast_out(b)
+
+
+@router.get("/broadcasts/{broadcast_id}", response_model=BroadcastOut)
+def get_broadcast(broadcast_id: uuid.UUID,
+                  current: User = Depends(require_permission("communication.view")),
+                  db: Session = Depends(get_db)) -> BroadcastOut:
+    return _broadcast_out(_broadcast(db, current, broadcast_id))
+
+
+@router.post("/broadcasts/{broadcast_id}/targets", response_model=BroadcastOut)
+def add_targets(broadcast_id: uuid.UUID, payload: TargetsIn,
+                current: User = Depends(require_permission("communication.manage")),
+                db: Session = Depends(get_db)) -> BroadcastOut:
+    b = _broadcast(db, current, broadcast_id)
+    try:
+        bsvc.add_targets(db, b, contact_ids=payload.contact_ids)
+        db.commit()
+    except bsvc.BroadcastError as exc:
+        raise _bguard(exc) from exc
+    return _broadcast_out(b)
+
+
+@router.get("/broadcasts/{broadcast_id}/preview", response_model=PreviewOut)
+def preview_broadcast(broadcast_id: uuid.UUID,
+                      current: User = Depends(require_permission("communication.view")),
+                      db: Session = Depends(get_db)) -> PreviewOut:
+    b = _broadcast(db, current, broadcast_id)
+    return PreviewOut(**bsvc.preview(db, b))
+
+
+@router.post("/broadcasts/{broadcast_id}/test", response_model=BroadcastOut)
+def test_broadcast(broadcast_id: uuid.UUID, payload: TestSendIn,
+                   current: User = Depends(require_permission("communication.manage")),
+                   db: Session = Depends(get_db)) -> BroadcastOut:
+    b = _broadcast(db, current, broadcast_id)
+    try:
+        bsvc.test_send(db, b, test_address=payload.test_address, actor_user_id=current.id)
+    except (bsvc.BroadcastError, svc.CommunicationError) as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    return _broadcast_out(b)
+
+
+@router.post("/broadcasts/{broadcast_id}/submit-approval", response_model=BroadcastOut)
+def submit_broadcast(broadcast_id: uuid.UUID,
+                     current: User = Depends(require_permission("communication.manage")),
+                     db: Session = Depends(get_db)) -> BroadcastOut:
+    b = _broadcast(db, current, broadcast_id)
+    try:
+        bsvc.submit_for_approval(db, b, actor_user_id=current.id)
+    except bsvc.BroadcastError as exc:
+        raise _bguard(exc) from exc
+    return _broadcast_out(b)
+
+
+@router.post("/broadcasts/{broadcast_id}/approve", response_model=BroadcastOut)
+def approve_broadcast(broadcast_id: uuid.UUID,
+                      current: User = Depends(require_permission("communication.approve")),
+                      db: Session = Depends(get_db)) -> BroadcastOut:
+    b = _broadcast(db, current, broadcast_id)
+    try:
+        bsvc.approve(db, b, approver_user_id=current.id)
+    except bsvc.BroadcastError as exc:
+        raise _bguard(exc) from exc
+    return _broadcast_out(b)
+
+
+@router.post("/broadcasts/{broadcast_id}/send", response_model=BroadcastOut)
+def send_broadcast(broadcast_id: uuid.UUID,
+                   current: User = Depends(require_permission("communication.send")),
+                   db: Session = Depends(get_db)) -> BroadcastOut:
+    b = _broadcast(db, current, broadcast_id)
+    try:
+        bsvc.dispatch_broadcast(db, b, actor_user_id=current.id)
+    except bsvc.BroadcastError as exc:
+        raise _bguard(exc) from exc
+    return _broadcast_out(b)
+
+
+@router.post("/broadcasts/{broadcast_id}/retry", response_model=BroadcastOut)
+def retry_broadcast(broadcast_id: uuid.UUID,
+                    current: User = Depends(require_permission("communication.send")),
+                    db: Session = Depends(get_db)) -> BroadcastOut:
+    b = _broadcast(db, current, broadcast_id)
+    try:
+        bsvc.retry_failed(db, b, actor_user_id=current.id)
+    except bsvc.BroadcastError as exc:
+        raise _bguard(exc) from exc
+    return _broadcast_out(b)
+
+
+@router.get("/broadcasts/{broadcast_id}/report", response_model=DeliveryReportOut)
+def broadcast_report(broadcast_id: uuid.UUID,
+                     current: User = Depends(require_permission("communication.view")),
+                     db: Session = Depends(get_db)) -> DeliveryReportOut:
+    b = _broadcast(db, current, broadcast_id)
+    return DeliveryReportOut(**bsvc.delivery_report(db, b))
 
 
 # ------------------------------- Webhooks -------------------------------- #

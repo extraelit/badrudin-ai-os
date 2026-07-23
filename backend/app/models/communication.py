@@ -75,6 +75,10 @@ class CommunicationContact(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin,
     stop_listed: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=false(), nullable=False
     )
+    # Отписка получателя (PR-7). Исключает контакт из любых рассылок.
+    unsubscribed: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=false(), nullable=False
+    )
     notes: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
 
@@ -144,6 +148,43 @@ class CommunicationMessage(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin,
     # Необязательная привязка к деловой сущности (поручение, процесс и т. п.).
     entity_type: Mapped[str | None] = mapped_column(String(48), nullable=True)
     entity_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+
+
+BROADCAST_STATUSES = (
+    "draft", "pending_approval", "approved", "scheduled", "sending",
+    "sent", "failed", "cancelled",
+)
+
+
+class Broadcast(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
+    __tablename__ = "broadcasts"
+
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("organizations.id"), index=True
+    )
+    channel: Mapped[str] = mapped_column(String(16), default="email")
+    template_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("message_templates.id"), nullable=True
+    )
+    title: Mapped[str] = mapped_column(String(255))
+    subject: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    body_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    project_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("projects.id"), nullable=True, index=True
+    )
+    scheduled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    status: Mapped[str] = mapped_column(String(16), default="draft")
+    author_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    approved_by_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    test_recipient: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    total_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    sent_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    failed_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
 
 class MessageRecipient(UUIDPrimaryKeyMixin, TimestampMixin, Base):

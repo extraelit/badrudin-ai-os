@@ -97,6 +97,28 @@ export interface DeliveryEvent {
   occurred_at: string;
 }
 
+export interface Broadcast {
+  id: string;
+  channel: string;
+  title: string;
+  subject: string | null;
+  body_text: string | null;
+  status: string;
+  scheduled_at: string | null;
+  total_count: number;
+  sent_count: number;
+  failed_count: number;
+  created_at: string;
+}
+
+export interface BroadcastReport {
+  broadcast_id: string;
+  total: number;
+  sent: number;
+  failed: number;
+  by_status: Record<string, number>;
+}
+
 export const commApi = {
   inbox: () => api<CommMessage[]>("/communications/inbox"),
   outbox: () => api<CommMessage[]>("/communications/outbox"),
@@ -133,4 +155,28 @@ export const commApi = {
     api<CommContact>("/communications/contacts", { method: "POST", body: JSON.stringify(body) }),
   createTemplate: (body: Record<string, unknown>) =>
     api<CommTemplate>("/communications/templates", { method: "POST", body: JSON.stringify(body) }),
+
+  broadcasts: () => api<Broadcast[]>("/communications/broadcasts"),
+  createBroadcast: (body: {
+    channel: string;
+    title: string;
+    subject?: string;
+    body_text?: string;
+    contact_ids?: string[];
+  }) => api<Broadcast>("/communications/broadcasts", { method: "POST", body: JSON.stringify(body) }),
+  submitBroadcast: (id: string) =>
+    api<Broadcast>(`/communications/broadcasts/${id}/submit-approval`, { method: "POST", body: "{}" }),
+  approveBroadcast: (id: string) =>
+    api<Broadcast>(`/communications/broadcasts/${id}/approve`, { method: "POST", body: "{}" }),
+  sendBroadcast: (id: string) =>
+    api<Broadcast>(`/communications/broadcasts/${id}/send`, { method: "POST", body: "{}" }),
+  retryBroadcast: (id: string) =>
+    api<Broadcast>(`/communications/broadcasts/${id}/retry`, { method: "POST", body: "{}" }),
+  broadcastReport: (id: string) =>
+    api<BroadcastReport>(`/communications/broadcasts/${id}/report`),
+  testBroadcast: (id: string, test_address: string) =>
+    api<Broadcast>(`/communications/broadcasts/${id}/test`, {
+      method: "POST",
+      body: JSON.stringify({ test_address }),
+    }),
 };

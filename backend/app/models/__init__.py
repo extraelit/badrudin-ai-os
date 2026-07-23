@@ -15,6 +15,7 @@ from app.models.organization import (
 from app.models.access_grant import ProjectAccess
 from app.models.attachment import Attachment
 from app.models.communication import (
+    Broadcast,
     CommunicationContact,
     CommunicationMessage,
     MessageDeliveryEvent,
@@ -176,6 +177,7 @@ from app.models.user import User
 __all__ = [
     "Base",
     "Attachment",
+    "Broadcast",
     "CommunicationContact",
     "CommunicationMessage",
     "MessageRecipient",

@@ -53,8 +53,8 @@ SQLite до head без ошибок; демо-данные (`app.db.seed`) за
 | PR-3 | Email adapter + вложения + sandbox | **слит #56 `346faa8`** (без миграции) |
 | PR-4 | Telegram adapter + webhook | **слит #57 `98a2dbc`** (без миграции) |
 | PR-5 | WhatsApp Cloud API adapter + webhooks | **слит #58 `76c3a34`** (без миграции) |
-| PR-6 | Instagram Messaging adapter + webhooks | **в работе (без миграции)** |
-| PR-7 | Рассылки, шаблоны, планирование, согласования, отчёты доставки | план |
+| PR-6 | Instagram Messaging adapter + webhooks | **слит #59 `f72ceeb`** (без миграции) |
+| PR-7 | Рассылки, шаблоны, планирование, согласования, отчёты доставки | **в работе (миграция 0044)**; тесты 7/7 |
 | PR-8 | AI Provider Layer + экран смены ИИ для агентов | план |
 | PR-9 | PostgreSQL/S3/очереди/production configuration | план |
 | PR-10 | PWA, финальный интерфейс, e2e, инструкция запуска | план |

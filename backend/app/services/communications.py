@@ -93,6 +93,18 @@ def set_stop_list(session: Session, contact: CommunicationContact, *, stop_liste
     return contact
 
 
+def set_unsubscribed(session: Session, contact: CommunicationContact, *,
+                     unsubscribed: bool, actor_user_id: uuid.UUID | None = None
+                     ) -> CommunicationContact:
+    """Отписка/переподписка контакта (исключает из рассылок)."""
+    contact.unsubscribed = unsubscribed
+    record_event(session, actor_type="user", action="communication.contact.unsubscribe",
+                 actor_user_id=actor_user_id, organization_id=contact.organization_id,
+                 entity_type="communication_contact", entity_id=contact.id,
+                 new_values={"unsubscribed": unsubscribed}, risk_level="R1", commit=True)
+    return contact
+
+
 def create_template(
     session: Session, organization_id: uuid.UUID, *, code: str, name: str,
     channel: str, body_text: str, subject: str | None = None,
