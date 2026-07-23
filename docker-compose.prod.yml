@@ -1,0 +1,113 @@
+# docker-compose.prod.yml — production-like профиль Badrudin AI OS (PR-9)
+#
+# Локальный запуск, приближенный к production: PostgreSQL + Redis + MinIO +
+# backend (API) + worker (Celery) + frontend. БЕЗ n8n / AI / SMTP.
+#
+# Секреты в этот файл НЕ вписываются — только ссылки на переменные окружения
+# из файла .env (шаблон — .env.example). Перед запуском задайте безопасные
+# значения (SECRET_KEY, JWT_SECRET, POSTGRES_PASSWORD, MINIO_*), STORAGE_BACKEND=s3,
+# APP_ENV=production, COOKIE_SECURE=true. TLS терминируется обратным прокси
+# (см. DOCS/DEPLOYMENT.md).
+
+name: badrudin-ai-os-prod
+
+x-app-env: &app-env
+  APP_ENV: ${APP_ENV:-production}
+  APP_DEBUG: "false"
+  DATABASE_URL: ${DATABASE_URL}
+  REDIS_URL: ${REDIS_URL}
+  CELERY_BROKER_URL: ${CELERY_BROKER_URL}
+  CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND}
+  CELERY_TASK_ALWAYS_EAGER: "false"
+  JWT_SECRET: ${JWT_SECRET}
+  SECRET_KEY: ${SECRET_KEY}
+  STORAGE_BACKEND: ${STORAGE_BACKEND:-s3}
+  COOKIE_SECURE: "true"
+  MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio:9000}
+  MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+  MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+  MINIO_BUCKET: ${MINIO_BUCKET:-badrudin-files}
+  CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS}
+
+services:
+  postgresql:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-badrudin}
+      POSTGRES_USER: ${POSTGRES_USER:-badrudin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD обязателен}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-badrudin} -d ${POSTGRES_DB:-badrudin}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD обязателен}"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY обязателен}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY обязателен}
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "mc ready local || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build: { context: ./backend }
+    environment: *app-env
+    depends_on:
+      postgresql: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      minio: { condition: service_healthy }
+    # Применение миграций и запуск API. Сид demo-данных в production не выполняется.
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health/ready').status==200 else 1)\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  worker:
+    build: { context: ./backend }
+    environment: *app-env
+    depends_on:
+      redis: { condition: service_healthy }
+      postgresql: { condition: service_healthy }
+    command: ["celery", "-A", "app.tasks.celery_app.celery_app", "worker", "-l", "info"]
+    restart: unless-stopped
+
+  frontend:
+    build: { context: ./frontend }
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
+    depends_on:
+      backend: { condition: service_started }
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redis-data:
+  minio-data:

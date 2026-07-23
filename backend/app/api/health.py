@@ -1,9 +1,12 @@
-"""Health-check эндпоинт (T-1.A4)."""
+"""Health-check эндпоинты (T-1.A4; readiness — PR-9)."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Response, status
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from app import __version__
 from app.core.config import get_settings
+from app.db.session import get_db
 
 router = APIRouter(tags=["health"])
 
@@ -22,6 +25,21 @@ def health() -> dict[str, str | bool]:
         "environment": settings.app_env,
         "version": __version__,
     }
+
+
+@router.get("/health/ready")
+def readiness(response: Response, db: Session = Depends(get_db)) -> dict[str, object]:
+    """Readiness-проба (PR-9): проверяет доступность БД (SELECT 1).
+
+    Возвращает 200 при доступной БД и 503 при ошибке подключения — пригодно для
+    оркестратора (Kubernetes/Compose healthcheck).
+    """
+    try:
+        db.execute(text("SELECT 1"))
+        return {"status": "ready", "database": True}
+    except Exception:  # noqa: BLE001 — не раскрываем детали ошибки БД наружу
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        return {"status": "not_ready", "database": False}
 
 
 @router.get("/health/status")

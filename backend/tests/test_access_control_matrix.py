@@ -33,6 +33,8 @@ from app.models import Employee, Organization, User
 PUBLIC_OR_PERSONAL = {
     "/health",
     "/health/status",
+    # readiness-проба (PR-9): публичная, для оркестратора (проверяет доступность БД)
+    "/health/ready",
     "/auth/me",
     # личный эндпоинт: показывает статус резервных кодов MFA самого пользователя
     "/auth/mfa/recovery-codes",
