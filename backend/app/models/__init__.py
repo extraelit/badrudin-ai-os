@@ -14,6 +14,13 @@ from app.models.organization import (
 )
 from app.models.access_grant import ProjectAccess
 from app.models.attachment import Attachment
+from app.models.ai_provider import (
+    AgentAIAssignment,
+    AIModel,
+    AIProvider,
+    AIProviderHealth,
+    AIUsageRecord,
+)
 from app.models.communication import (
     Broadcast,
     CommunicationContact,
@@ -177,6 +184,11 @@ from app.models.user import User
 __all__ = [
     "Base",
     "Attachment",
+    "AIProvider",
+    "AIModel",
+    "AgentAIAssignment",
+    "AIUsageRecord",
+    "AIProviderHealth",
     "Broadcast",
     "CommunicationContact",
     "CommunicationMessage",

@@ -13,6 +13,7 @@ from app import __version__
 from app.api import (
     accountable,
     agents,
+    ai_provider,
     attachments,
     auth,
     communications,
@@ -107,6 +108,7 @@ def create_app() -> FastAPI:
     app.include_router(dashboards.router)
     app.include_router(attachments.router)
     app.include_router(communications.router)
+    app.include_router(ai_provider.router)
     return app
 
 
