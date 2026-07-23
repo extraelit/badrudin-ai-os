@@ -13,6 +13,7 @@ from app.models.organization import (
     Position,
 )
 from app.models.access_grant import ProjectAccess
+from app.models.attachment import Attachment
 from app.models.agent import AgentProposal, AgentRun, AIAgent
 from app.models.audit import AuditEvent
 from app.models.content import (
@@ -167,6 +168,7 @@ from app.models.user import User
 
 __all__ = [
     "Base",
+    "Attachment",
     "Organization",
     "Department",
     "Position",

@@ -5,8 +5,9 @@
  * возврат на доработку и закрытие ТОЛЬКО проверяющим. Действия скрыты по правам
  * пользователя (сервер всё равно проверяет). Данные из backend; без backend —
  * честное пустое состояние. */
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { PageHead, Card, Badge } from "../../../components/ui";
+import { AttachFile } from "../../../components/AttachFile";
 import { apiBaseConfigured, me } from "../../../lib/authApi";
 import { processApi, type WorkflowProcess } from "../../../lib/processApi";
 
@@ -29,6 +30,7 @@ export default function ProcessesPage() {
   const [title, setTitle] = useState("");
   const [dueAt, setDueAt] = useState("");
   const [execId, setExecId] = useState<Record<string, string>>({});
+  const [openFiles, setOpenFiles] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -108,7 +110,8 @@ export default function ProcessesPage() {
             </thead>
             <tbody>
               {items.map((p) => (
-                <tr key={p.id}>
+                <Fragment key={p.id}>
+                <tr>
                   <td className="table__strong">{p.title}</td>
                   <td className="muted">{p.process_kind}</td>
                   <td><Badge tone={p.risk_level === "R4" || p.risk_level === "R3" ? "red" : "navy"}>{p.risk_level}</Badge></td>
@@ -149,9 +152,25 @@ export default function ProcessesPage() {
                           <button className="btn btn--sm" onClick={() => run(() => processApi.review(p.id, "revision_required", "на доработку"), "Возвращено")}>Вернуть</button>
                         </>
                       )}
+                      <button className="btn btn--sm" onClick={() => setOpenFiles(openFiles === p.id ? null : p.id)}>
+                        Файлы
+                      </button>
                     </div>
                   </td>
                 </tr>
+                {openFiles === p.id && (
+                  <tr>
+                    <td colSpan={6} style={{ background: "rgba(0,0,0,0.02)", padding: 14 }}>
+                      <AttachFile
+                        entityType="workflow_process"
+                        entityId={p.id}
+                        projectId={p.project_id}
+                        canManage={has("task.execute") || has("attachment.manage")}
+                      />
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
               {items.length === 0 && (
                 <tr><td colSpan={6} className="muted" style={{ padding: 18 }}>Процессов пока нет.</td></tr>

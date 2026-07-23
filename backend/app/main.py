@@ -13,6 +13,7 @@ from app import __version__
 from app.api import (
     accountable,
     agents,
+    attachments,
     auth,
     core,
     crm,
@@ -103,6 +104,7 @@ def create_app() -> FastAPI:
     app.include_router(quality.router)
     app.include_router(risk_threshold.router)
     app.include_router(dashboards.router)
+    app.include_router(attachments.router)
     return app
 
 
