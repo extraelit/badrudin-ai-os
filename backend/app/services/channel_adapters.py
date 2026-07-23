@@ -266,11 +266,59 @@ class WhatsAppAdapter:
         return SendResult(ok=True, external_id=f"wa:{mid}", per_recipient={to: f"wa:{mid}"})
 
 
-# Реестр реальных адаптеров по каналам (расширяется в PR-6).
+class InstagramAdapter:
+    """Отправка через официальный Messenger Platform for Instagram (Graph API).
+
+    POST /{ig_id}/messages с `recipient={id}` и `message={text}`. HTTP-транспорт
+    внедряется; без токена и account_id `available()` = False. Вложения байтами
+    Instagram напрямую не принимает (нужен публичный URL медиа); при отсутствии
+    URL к тексту добавляется пометка о вложениях — см. ограничение в docs.
+    """
+
+    channel = "instagram"
+    is_real = True
+    api_version = "v20.0"
+
+    def __init__(self, call: Callable[..., dict] | None = None) -> None:
+        self._call = call or _httpx_whatsapp_call  # общий транспорт Graph API
+
+    def available(self) -> bool:
+        s = get_settings()
+        return bool(s.instagram_token and s.instagram_account_id)
+
+    def _url(self) -> str:
+        s = get_settings()
+        return f"{s.instagram_api_base}/{self.api_version}/{s.instagram_account_id}/messages"
+
+    def send(self, *, subject, body, sender, recipients, attachments) -> SendResult:
+        if not self.available():
+            return SendResult(ok=False, error="Instagram не настроен")
+        s = get_settings()
+        text = "\n".join(p for p in (subject, body) if p) or "(без текста)"
+        if attachments:
+            # Ограничение канала: байтовые вложения без публичного URL не
+            # отправляются; честно помечаем это в тексте (см. docs).
+            text += f"\n[вложений: {len(attachments)} — доступны в системе]"
+        per: dict[str, str] = {}
+        last: str | None = None
+        for to in recipients:
+            r = self._call(self._url(), s.instagram_token, json={
+                "recipient": {"id": to}, "message": {"text": text},
+            })
+            if "error" in r:
+                return SendResult(ok=False, error=f"Instagram: {r['error'].get('message')}")
+            mid = r.get("message_id") or (r.get("messages") or [{}])[0].get("id", "")
+            per[to] = f"ig:{mid}"
+            last = f"ig:{mid}"
+        return SendResult(ok=True, external_id=last, per_recipient=per)
+
+
+# Реестр реальных адаптеров по каналам.
 _REAL_ADAPTERS: dict[str, Callable[[], ChannelAdapter]] = {
     "email": EmailAdapter,
     "telegram": TelegramAdapter,
     "whatsapp": WhatsAppAdapter,
+    "instagram": InstagramAdapter,
 }
 
 
