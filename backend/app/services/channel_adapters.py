@@ -114,9 +114,67 @@ class EmailAdapter:
         return SendResult(ok=True, external_id=external_id, per_recipient=per)
 
 
-# Реестр реальных адаптеров по каналам (расширяется в PR-4…6).
+def _httpx_telegram_call(method: str, token: str, base: str, *, data: dict,
+                         files: dict | None = None) -> dict:
+    """Реальный вызов Telegram Bot API через httpx (используется по умолчанию)."""
+    import httpx
+
+    url = f"{base}/bot{token}/{method}"
+    with httpx.Client(timeout=20) as client:
+        resp = client.post(url, data=data, files=files)
+    try:
+        return resp.json()
+    except Exception:  # noqa: BLE001
+        return {"ok": False, "description": f"HTTP {resp.status_code}"}
+
+
+class TelegramAdapter:
+    """Отправка через официальный Telegram Bot API (sendMessage/sendDocument).
+
+    HTTP-транспорт (`call`) внедряется для тестируемости; по умолчанию — httpx.
+    Без токена `available()` = False, сетевые вызовы не выполняются. Адрес
+    получателя — chat_id. Неофициальные способы не используются (CLAUDE.md §13).
+    """
+
+    channel = "telegram"
+    is_real = True
+
+    def __init__(self, call: Callable[..., dict] | None = None) -> None:
+        self._call = call or _httpx_telegram_call
+
+    def available(self) -> bool:
+        return bool(get_settings().telegram_bot_token)
+
+    def _api(self, method: str, *, data: dict, files: dict | None = None) -> dict:
+        s = get_settings()
+        return self._call(method, s.telegram_bot_token, s.telegram_api_base,
+                          data=data, files=files)
+
+    def send(self, *, subject, body, sender, recipients, attachments) -> SendResult:
+        if not self.available():
+            return SendResult(ok=False, error="Telegram-бот не настроен")
+        text = "\n".join(p for p in (subject, body) if p) or "(без текста)"
+        per: dict[str, str] = {}
+        last_id: str | None = None
+        for chat_id in recipients:
+            r = self._api("sendMessage", data={"chat_id": chat_id, "text": text})
+            if not r.get("ok"):
+                return SendResult(ok=False, error=f"Telegram: {r.get('description')}")
+            mid = str(r.get("result", {}).get("message_id", ""))
+            for name, content, _mime in attachments:
+                rd = self._api("sendDocument", data={"chat_id": chat_id},
+                               files={"document": (name, content)})
+                if not rd.get("ok"):
+                    return SendResult(ok=False, error=f"Telegram(doc): {rd.get('description')}")
+            per[chat_id] = f"tg:{mid}"
+            last_id = f"tg:{mid}"
+        return SendResult(ok=True, external_id=last_id, per_recipient=per)
+
+
+# Реестр реальных адаптеров по каналам (расширяется в PR-5…6).
 _REAL_ADAPTERS: dict[str, Callable[[], ChannelAdapter]] = {
     "email": EmailAdapter,
+    "telegram": TelegramAdapter,
 }
 
 

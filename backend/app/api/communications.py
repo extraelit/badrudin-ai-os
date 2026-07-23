@@ -12,11 +12,12 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_permission
+from app.core.config import get_settings
 from app.db.session import get_db
 from app.models import (
     CommunicationContact,
@@ -24,6 +25,7 @@ from app.models import (
     Employee,
     IntegrationConnector,
     MessageTemplate,
+    Organization,
     User,
 )
 from app.models.communication import COMM_CHANNELS
@@ -335,3 +337,50 @@ def approve_template(template_id: uuid.UUID,
     svc.approve_template(db, t, actor_user_id=current.id)
     return TemplateOut(id=t.id, code=t.code, name=t.name, channel=t.channel,
                        subject=t.subject, body_text=t.body_text, is_approved=t.is_approved)
+
+
+# ------------------------------- Webhooks -------------------------------- #
+
+def _resolve_org_for_channel(db: Session, channel: str) -> uuid.UUID | None:
+    """Организация для входящего вебхука: по коннектору канала, иначе первая."""
+    conn = db.execute(
+        select(IntegrationConnector).where(
+            IntegrationConnector.channel == channel,
+            IntegrationConnector.deleted_at.is_(None),
+        )
+    ).scalars().first()
+    if conn is not None:
+        return conn.organization_id
+    org = db.execute(select(Organization)).scalars().first()
+    return org.id if org is not None else None
+
+
+@router.post("/webhooks/telegram")
+def telegram_webhook(
+    payload: dict,
+    x_telegram_bot_api_secret_token: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Приём входящих сообщений Telegram (официальный Bot API webhook).
+
+    Без авторизации пользователя; подлинность подтверждается секретным токеном
+    вебхука (заголовок X-Telegram-Bot-Api-Secret-Token) из окружения. Если секрет
+    не задан — приём отключён (заглушка). Секрет неверный — 403.
+    """
+    secret = get_settings().telegram_webhook_secret
+    if not secret:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE,
+                            "Приём вебхуков Telegram отключён (не задан секрет)")
+    if x_telegram_bot_api_secret_token != secret:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Неверный секрет вебхука")
+    msg = payload.get("message") or payload.get("edited_message") or {}
+    chat = msg.get("chat") or {}
+    chat_id = str(chat.get("id")) if chat.get("id") is not None else "unknown"
+    text = msg.get("text")
+    ext = str(msg.get("message_id")) if msg.get("message_id") is not None else None
+    org_id = _resolve_org_for_channel(db, "telegram")
+    if org_id is None:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Нет организации для приёма")
+    m = svc.record_incoming(db, org_id, channel="telegram", address_from=chat_id,
+                            body_text=text, external_id=ext)
+    return {"ok": True, "message_id": str(m.id)}
