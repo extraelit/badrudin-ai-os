@@ -212,22 +212,40 @@ def cancel(session: Session, message: CommunicationMessage, *, actor_user_id: uu
     return message
 
 
+def _message_attachments(session: Session, message: CommunicationMessage):
+    """Вложения сообщения (name, bytes, mime) через универсальный сервис (PR-1)."""
+    from app.services import attachments as att_svc
+
+    out = []
+    for a in att_svc.list_for(session, "message", message.id):
+        data, _url, file = att_svc.download(session, a)
+        if data is not None:
+            out.append((file.original_name, data, file.mime_type))
+    return out
+
+
 def dispatch(
     session: Session, message: CommunicationMessage, *, actor_user_id: uuid.UUID,
     allow_real_send: bool = False,
 ) -> CommunicationMessage:
-    """Отправляет сообщение. По умолчанию — sandbox (без внешних вызовов).
+    """Отправляет сообщение через адаптер канала (PR-3).
 
-    Реальная отправка (`allow_real_send=True`) в PR-2 не поддерживается: адаптеры
-    каналов подключаются в PR-3…6. Здесь — только безопасная имитация, честно
-    помеченная синтетическим `external_id` (`sandbox:*`).
+    Режим определяется рубильником `settings.comm_real_send` и готовностью
+    адаптера канала (наличием ключей). Если реальная отправка недоступна —
+    работает безопасный sandbox (без внешних вызовов), `external_id`=`sandbox:*`.
+    `allow_real_send=True` при недоступном реальном адаптере явно блокируется.
     """
+    from app.core.config import get_settings
+    from app.services.channel_adapters import SandboxAdapter, get_channel_adapter
+
     if _requires_approval(message.channel) and message.status not in ("approved", "scheduled"):
         raise CommunicationError("Внешнее сообщение требует согласования перед отправкой")
     if message.status in ("sent", "delivered", "read"):
         raise CommunicationError("Сообщение уже отправлено")
-    if allow_real_send:
-        # Останов: реальная отправка требует ключей и адаптера (PR-3…6).
+
+    adapter = get_channel_adapter(message.channel)
+    real_mode = get_settings().comm_real_send and adapter.is_real and adapter.available()
+    if allow_real_send and not real_mode:
         raise CommunicationError("Реальная отправка недоступна: нет адаптера/ключей канала")
 
     recipients = _recipients(session, message)
@@ -236,8 +254,11 @@ def dispatch(
 
     message.status = "sending"
     message.attempts += 1
-    _event(session, message, "sending", detail="sandbox")
-    sent = 0
+    mode = "real" if real_mode else "sandbox"
+    _event(session, message, "sending", detail=mode)
+
+    # Фильтрация по согласию/стоп-листу — до фактической отправки.
+    targets = []
     for r in recipients:
         contact = session.get(CommunicationContact, r.contact_id) if r.contact_id else None
         if contact is not None and (contact.stop_listed or not contact.consent):
@@ -245,24 +266,44 @@ def dispatch(
             r.error_reason = "стоп-лист или нет согласия"
             _event(session, message, "skipped", recipient=r, detail=r.error_reason)
             continue
-        ext = f"sandbox:{uuid.uuid4().hex[:16]}"
-        r.status = "sent"
-        r.external_id = ext
-        _event(session, message, "sent", recipient=r, external_id=ext, detail="sandbox")
-        sent += 1
+        targets.append(r)
 
-    if sent == 0:
+    if not targets:
         message.status = "failed"
         message.error_reason = "все получатели исключены (стоп-лист/нет согласия)"
         _audit(session, message, "communication.message.failed", actor_user_id,
                new={"status": "failed"}, risk="R2")
         return message
 
+    send_adapter = adapter if real_mode else SandboxAdapter()
+    attachments = _message_attachments(session, message) if real_mode else []
+    result = send_adapter.send(
+        subject=message.subject, body=message.body_text, sender=None,
+        recipients=[t.address for t in targets], attachments=attachments,
+    )
+
+    if not result.ok:
+        for t in targets:
+            t.status = "failed"
+            t.error_reason = result.error
+            _event(session, message, "failed", recipient=t, detail=result.error)
+        message.status = "failed"
+        message.error_reason = result.error
+        _audit(session, message, "communication.message.failed", actor_user_id,
+               new={"status": "failed", "mode": mode}, reason=result.error, risk="R2")
+        return message
+
+    for t in targets:
+        ext = result.per_recipient.get(t.address, result.external_id)
+        t.status = "sent"
+        t.external_id = ext
+        _event(session, message, "sent", recipient=t, external_id=ext, detail=mode)
+
     message.status = "sent"
     message.sent_at = _now()
-    message.external_id = f"sandbox:{uuid.uuid4().hex[:16]}"
+    message.external_id = result.external_id
     _audit(session, message, "communication.message.sent", actor_user_id,
-           new={"status": "sent", "recipients_sent": sent, "mode": "sandbox"}, risk="R2")
+           new={"status": "sent", "recipients_sent": len(targets), "mode": mode}, risk="R2")
     return message
 
 
