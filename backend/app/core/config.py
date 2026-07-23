@@ -40,6 +40,19 @@ class Settings(BaseSettings):
     # Каталог локального хранилища. По умолчанию — вне репозитория (системный temp),
     # чтобы разработка/тесты не засоряли рабочее дерево; в production задаётся явно.
     local_storage_dir: str | None = None
+    # Коммуникации: главный рубильник реальной отправки. По умолчанию ВЫКЛЮЧЕН —
+    # работает безопасный sandbox без внешних вызовов. Реальная отправка возможна
+    # только при comm_real_send=true И настроенных ключах канала (из окружения).
+    comm_real_send: bool = False
+    # SMTP (канал email, PR-3). Значения — только из окружения/secret manager.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    smtp_use_tls: bool = True
+    smtp_timeout_seconds: int = 20
+
     # S3-совместимое хранилище (MinIO/AWS S3, D-008)
     minio_endpoint: str = "minio:9000"
     minio_access_key: str = "change-me"
