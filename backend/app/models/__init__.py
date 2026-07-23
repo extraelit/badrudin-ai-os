@@ -14,6 +14,13 @@ from app.models.organization import (
 )
 from app.models.access_grant import ProjectAccess
 from app.models.attachment import Attachment
+from app.models.communication import (
+    CommunicationContact,
+    CommunicationMessage,
+    MessageDeliveryEvent,
+    MessageRecipient,
+    MessageTemplate,
+)
 from app.models.agent import AgentProposal, AgentRun, AIAgent
 from app.models.audit import AuditEvent
 from app.models.content import (
@@ -169,6 +176,11 @@ from app.models.user import User
 __all__ = [
     "Base",
     "Attachment",
+    "CommunicationContact",
+    "CommunicationMessage",
+    "MessageRecipient",
+    "MessageTemplate",
+    "MessageDeliveryEvent",
     "Organization",
     "Department",
     "Position",

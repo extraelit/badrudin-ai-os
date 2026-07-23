@@ -15,6 +15,7 @@ from app.api import (
     agents,
     attachments,
     auth,
+    communications,
     core,
     crm,
     daily_report_ai,
@@ -105,6 +106,7 @@ def create_app() -> FastAPI:
     app.include_router(risk_threshold.router)
     app.include_router(dashboards.router)
     app.include_router(attachments.router)
+    app.include_router(communications.router)
     return app
 
 
