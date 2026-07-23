@@ -57,6 +57,13 @@ class Settings(BaseSettings):
     telegram_bot_token: str = ""
     telegram_webhook_secret: str = ""
     telegram_api_base: str = "https://api.telegram.org"
+    # WhatsApp Business Cloud API (канал whatsapp, PR-5). Токен, идентификатор
+    # номера, verify-токен вебхука и app secret — из окружения/secret manager.
+    whatsapp_token: str = ""
+    whatsapp_phone_number_id: str = ""
+    whatsapp_verify_token: str = ""
+    whatsapp_app_secret: str = ""
+    whatsapp_api_base: str = "https://graph.facebook.com"
 
     # S3-совместимое хранилище (MinIO/AWS S3, D-008)
     minio_endpoint: str = "minio:9000"

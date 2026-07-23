@@ -12,7 +12,8 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
+from fastapi.responses import PlainTextResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -384,3 +385,62 @@ def telegram_webhook(
     m = svc.record_incoming(db, org_id, channel="telegram", address_from=chat_id,
                             body_text=text, external_id=ext)
     return {"ok": True, "message_id": str(m.id)}
+
+
+@router.get("/webhooks/whatsapp", response_class=PlainTextResponse)
+def whatsapp_verify(
+    hub_mode: str | None = Query(default=None, alias="hub.mode"),
+    hub_verify_token: str | None = Query(default=None, alias="hub.verify_token"),
+    hub_challenge: str | None = Query(default=None, alias="hub.challenge"),
+) -> str:
+    """Верификация подписки WhatsApp Cloud API (официальный webhook handshake)."""
+    verify = get_settings().whatsapp_verify_token
+    if not verify:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE,
+                            "Верификация WhatsApp отключена (не задан verify_token)")
+    if hub_mode == "subscribe" and hub_verify_token == verify:
+        return hub_challenge or ""
+    raise HTTPException(status.HTTP_403_FORBIDDEN, "Верификация не пройдена")
+
+
+@router.post("/webhooks/whatsapp")
+async def whatsapp_incoming(
+    request: Request,
+    x_hub_signature_256: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Приём входящих WhatsApp (Cloud API). Подпись X-Hub-Signature-256 проверяется
+    при заданном app secret; иначе приём подтверждается контуром verify-токена."""
+    import hashlib
+    import hmac
+    import json as _json
+
+    settings = get_settings()
+    raw = await request.body()
+    secret = settings.whatsapp_app_secret
+    if secret:
+        expected = "sha256=" + hmac.new(secret.encode(), raw, hashlib.sha256).hexdigest()
+        if not (x_hub_signature_256 and hmac.compare_digest(expected, x_hub_signature_256)):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Неверная подпись вебхука")
+    elif not settings.whatsapp_verify_token:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE,
+                            "Приём вебхуков WhatsApp отключён (нет секрета/verify_token)")
+    try:
+        payload = _json.loads(raw or b"{}")
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Некорректный JSON") from exc
+
+    org_id = _resolve_org_for_channel(db, "whatsapp")
+    if org_id is None:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Нет организации для приёма")
+    received = 0
+    for entry in payload.get("entry", []):
+        for change in entry.get("changes", []):
+            for msg in (change.get("value") or {}).get("messages", []):
+                frm = msg.get("from", "unknown")
+                text = (msg.get("text") or {}).get("body")
+                ext = msg.get("id")
+                svc.record_incoming(db, org_id, channel="whatsapp", address_from=frm,
+                                    body_text=text, external_id=ext)
+                received += 1
+    return {"ok": True, "received": received}
