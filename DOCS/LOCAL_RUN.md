@@ -279,3 +279,38 @@ TOTP-приложение (Google Authenticator и т. п.) и введите 6-
 - Локальный файл БД (вариант A) — `badrudin_local.db` в корне репозитория
   (относительный путь SQLite привязан к корню независимо от того, из какого
   каталога запущены бутстрап и API); удалите его, чтобы начать с чистой базы.
+
+---
+
+## 9. Модули production-этапа (PR-1…PR-10)
+
+После входа доступны новые разделы (реальные внешние отправки/вызовы по умолчанию
+выключены — sandbox/эхо):
+
+- **Универсальные вложения** — кнопка «Файлы» на экране «Процессы» и общий сервис
+  `/attachments` (фото/PDF/док к любой сущности; SHA-256, версии, архив).
+  Подробнее — `DOCS/FILE_ATTACHMENT_SERVICE.md`.
+- **Центр коммуникаций** (`/crm/communications`) — вкладки Входящие/Исходящие/
+  Черновики/Рассылки/Шаблоны/Контакты/Каналы + журнал доставки; каналы email/
+  Telegram/WhatsApp/Instagram работают в **sandbox** до подключения ключей.
+  Подробнее — `DOCS/COMMUNICATIONS_CENTER.md`.
+- **ИИ-провайдеры** (`/settings/ai-providers`) — сменяемые OpenAI/Anthropic/Gemini/
+  локальный; по умолчанию **эхо-режим** (`AI_REAL_CALLS=false`). Ключи — только из
+  окружения. Подробнее — `DOCS/AI_PROVIDER_LAYER.md`.
+- **Production-запуск** — `docker-compose.prod.yml` и `DOCS/DEPLOYMENT.md`
+  (PostgreSQL + Redis + MinIO + backend + worker + frontend, health-пробы,
+  rate-limit, заголовки безопасности, фоновые очереди).
+- **PWA** — приложение устанавливается на телефон/компьютер (манифест
+  `/manifest.webmanifest`, service worker `/sw.js`). В браузере: меню →
+  «Установить приложение». Service worker активен только в production-сборке
+  (`npm run build && npm run start`).
+
+## 10. Проверка production-пути без интерфейса
+
+Сквозной сценарий (процесс → назначение → вложение → Evidence Gate → ИИ-черновик
+в эхо-режиме → проверка → закрытие → коммуникации/рассылка в sandbox) покрыт
+воспроизводимым тестом:
+
+```bash
+cd backend && pytest tests/test_prod_e2e.py -q
+```
