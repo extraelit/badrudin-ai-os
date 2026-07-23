@@ -113,7 +113,9 @@
     { "code": "communication.view" },
     { "code": "communication.manage" },
     { "code": "communication.approve" },
-    { "code": "communication.send" }
+    { "code": "communication.send" },
+    { "code": "ai.provider.view" },
+    { "code": "ai.provider.manage" }
   ],
   "departments": [
     { "ref": "dep_management", "name": "Управление", "code": "MGMT" },
@@ -164,7 +166,7 @@
       "procurement.view", "procurement.approve",
       "accountable.view", "accountable.approve",
       "smm.view", "smm.approve", "integration.view", "integration.approve",
-      "normative.view", "attachment.view", "attachment.manage", "communication.view", "communication.approve"
+      "normative.view", "attachment.view", "attachment.manage", "communication.view", "communication.approve", "ai.provider.view", "ai.provider.manage"
     ],
     "executive_director": [
       "management.view", "project.view", "project.create", "project.manage", "site.manage",
@@ -181,7 +183,7 @@
       "accountable.view", "accountable.manage", "accountable.approve",
       "integration.view", "integration.manage", "smm.view", "smm.manage",
       "crm.view", "crm.manage", "deal.approve", "notification.manage",
-      "normative.view", "attachment.view", "attachment.manage", "communication.view", "communication.manage", "communication.approve", "communication.send"
+      "normative.view", "attachment.view", "attachment.manage", "communication.view", "communication.manage", "communication.approve", "communication.send", "ai.provider.view", "ai.provider.manage"
     ],
     "production_director": [
       "project.view", "project.create", "project.manage", "site.manage",
@@ -200,7 +202,7 @@
       "pto.view", "pto.manage", "pto.approve", "notification.manage",
       "equipment.view", "equipment.manage", "equipment.maintain",
       "accountable.view", "accountable.manage", "accountable.approve",
-      "normative.view", "attachment.view", "attachment.manage", "communication.view", "communication.manage", "communication.approve", "communication.send"
+      "normative.view", "attachment.view", "attachment.manage", "communication.view", "communication.manage", "communication.approve", "communication.send", "ai.provider.view"
     ],
     "chief_engineer": [
       "management.view", "project.view", "project.manage", "site.manage",
@@ -212,7 +214,7 @@
       "equipment.view", "equipment.manage", "equipment.maintain", "warehouse.view",
       "procurement.view", "procurement.manage", "kpi.view",
       "audit.finding.view", "audit.finding.manage", "audit.finding.resolve",
-      "normative.view", "normative.manage", "normative.confirm", "attachment.view", "attachment.manage", "communication.view", "communication.manage", "communication.approve"
+      "normative.view", "normative.manage", "normative.confirm", "attachment.view", "attachment.manage", "communication.view", "communication.manage", "communication.approve", "ai.provider.view", "ai.provider.manage"
     ],
     "project_manager": [
       "management.view", "project.view", "project.manage", "site.manage",
@@ -222,7 +224,7 @@
       "risk.view", "risk.manage", "daily_report.view", "daily_report.manage", "daily_report.approve",
       "equipment.view", "warehouse.view", "kpi.view", "crm.view",
       "accountable.view", "accountable.manage", "notification.manage",
-      "normative.view", "attachment.view", "attachment.manage", "communication.view", "communication.manage", "communication.approve", "communication.send"
+      "normative.view", "attachment.view", "attachment.manage", "communication.view", "communication.manage", "communication.approve", "communication.send", "ai.provider.view"
     ],
     "site_manager": [
       "project.view", "site.manage", "task.view", "task.create", "task.assign", "task.execute",
@@ -245,7 +247,7 @@
       "project.view", "pto.view", "pto.manage", "estimate.view", "estimate.manage",
       "design.view", "design.manage", "task.view", "daily_report.view", "kpi.view",
       "procurement.view", "warehouse.view",
-      "normative.view", "normative.manage", "attachment.view", "attachment.manage", "communication.view", "communication.manage", "communication.send"
+      "normative.view", "normative.manage", "attachment.view", "attachment.manage", "communication.view", "communication.manage", "communication.send", "ai.provider.view"
     ],
     "construction_control_engineer": [
       "project.view", "task.view", "daily_report.view", "daily_report.approve",

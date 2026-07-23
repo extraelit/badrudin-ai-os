@@ -72,6 +72,19 @@ class Settings(BaseSettings):
     instagram_app_secret: str = ""
     instagram_api_base: str = "https://graph.facebook.com"
 
+    # AI Provider Layer (PR-8). Главный рубильник реальных вызовов ИИ — по
+    # умолчанию ВЫКЛЮЧЕН (эхо/заглушка). Ключи — только из окружения/secret
+    # manager, никогда не в БД в открытом виде и не в Git; маскируются в логах.
+    ai_real_calls: bool = False
+    openai_api_key: str = ""
+    openai_base_url: str = "https://api.openai.com/v1"
+    anthropic_api_key: str = ""
+    anthropic_base_url: str = "https://api.anthropic.com/v1"
+    gemini_api_key: str = ""
+    gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
+    local_ai_base_url: str = ""
+    local_ai_api_key: str = ""
+
     # S3-совместимое хранилище (MinIO/AWS S3, D-008)
     minio_endpoint: str = "minio:9000"
     minio_access_key: str = "change-me"

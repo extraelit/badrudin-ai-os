@@ -150,7 +150,10 @@ const NAV: NavGroup[] = [
   },
   {
     section: "Система",
-    items: [{ href: "/settings", label: "Настройки", icon: "settings" }],
+    items: [
+      { href: "/settings", label: "Настройки", icon: "settings" },
+      { href: "/settings/ai-providers", label: "ИИ-провайдеры", icon: "settings" },
+    ],
   },
 ];
 
