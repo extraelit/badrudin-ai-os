@@ -28,6 +28,24 @@ class Settings(BaseSettings):
     backend_host: str = "0.0.0.0"
     backend_port: int = 8000
 
+    # Production-контур (PR-9). Мягкие дефолты, не ломающие dev/CI.
+    # Лимит запросов в минуту на IP (0 — выключено). По умолчанию высокий/мягкий.
+    rate_limit_per_minute: int = 600
+    # Заголовки безопасности (HSTS/Frame-Options/…) — включаются вне development.
+    security_headers_enabled: bool = True
+    # Secure-флаг для cookie (в production обязателен HTTPS).
+    cookie_secure: bool = False
+    # Фоновые задачи: в dev/test выполнять синхронно (без реального брокера).
+    celery_task_always_eager: bool = True
+
+    @property
+    def is_production(self) -> bool:
+        return self.app_env.strip().lower() == "production"
+
+    @property
+    def is_strict_env(self) -> bool:
+        return self.app_env.strip().lower() in ("staging", "production")
+
     # Разрешённые источники для CORS (интерфейс Next.js обращается к API из браузера).
     # Список через запятую; задаётся окружением для staging/production.
     cors_allow_origins: str = "http://localhost:3000,http://127.0.0.1:3000"

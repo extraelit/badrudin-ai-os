@@ -319,6 +319,18 @@ def dispatch(
     return message
 
 
+def dispatch_idempotent(session: Session, message: CommunicationMessage, *,
+                        actor_user_id: uuid.UUID) -> CommunicationMessage:
+    """Идемпотентная отправка (PR-9): повтор уже отправленного — без дублей.
+
+    Пригодно для фоновой задачи/очереди: если сообщение уже sent/delivered/read,
+    возвращает его без повторной отправки (защита от двойного проведения).
+    """
+    if message.status in ("sent", "delivered", "read"):
+        return message
+    return dispatch(session, message, actor_user_id=actor_user_id)
+
+
 def retry_failed(session: Session, message: CommunicationMessage, *,
                  actor_user_id: uuid.UUID) -> CommunicationMessage:
     """Повторная отправка только неуспешным получателям (защита от дублей)."""

@@ -49,7 +49,11 @@ from app.api import (
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging
-from app.core.middleware import RequestIDMiddleware
+from app.core.middleware import (
+    RateLimitMiddleware,
+    RequestIDMiddleware,
+    SecurityHeadersMiddleware,
+)
 from app.core.preflight import check_required_secrets
 
 
@@ -66,6 +70,13 @@ def create_app() -> FastAPI:
         debug=settings.app_debug,
     )
     app.add_middleware(RequestIDMiddleware)
+    # Мягкий per-IP лимит запросов (PR-9); health-эндпоинты не лимитируются.
+    # Активен только в staging/production, чтобы не мешать локальной работе и CI.
+    rate_limit = settings.rate_limit_per_minute if settings.is_strict_env else 0
+    app.add_middleware(RateLimitMiddleware, limit_per_minute=rate_limit)
+    # Заголовки безопасности; HSTS — только вне development (за HTTPS-прокси).
+    if settings.security_headers_enabled:
+        app.add_middleware(SecurityHeadersMiddleware, hsts=settings.is_production)
     origins = [o.strip() for o in settings.cors_allow_origins.split(",") if o.strip()]
     app.add_middleware(
         CORSMiddleware,
