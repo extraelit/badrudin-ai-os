@@ -52,6 +52,11 @@ class Settings(BaseSettings):
     smtp_from: str = ""
     smtp_use_tls: bool = True
     smtp_timeout_seconds: int = 20
+    # Telegram Bot API (канал telegram, PR-4). Токен и секрет вебхука — из
+    # окружения/secret manager. Без токена реальная отправка не выполняется.
+    telegram_bot_token: str = ""
+    telegram_webhook_secret: str = ""
+    telegram_api_base: str = "https://api.telegram.org"
 
     # S3-совместимое хранилище (MinIO/AWS S3, D-008)
     minio_endpoint: str = "minio:9000"
