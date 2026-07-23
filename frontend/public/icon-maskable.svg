@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Badrudin AI OS">
+  <rect width="512" height="512" fill="#0b1220"/>
+  <g fill="none" stroke="#4f83ff" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M156 372 V220 L256 156 L356 220 V372"/>
+    <path d="M156 372 H356"/>
+    <path d="M224 372 V300 H288 V372"/>
+  </g>
+</svg>
