@@ -64,6 +64,13 @@ class Settings(BaseSettings):
     whatsapp_verify_token: str = ""
     whatsapp_app_secret: str = ""
     whatsapp_api_base: str = "https://graph.facebook.com"
+    # Instagram Messaging API (канал instagram, PR-6). Токен, id аккаунта,
+    # verify-токен и app secret вебхука — из окружения/secret manager.
+    instagram_token: str = ""
+    instagram_account_id: str = ""
+    instagram_verify_token: str = ""
+    instagram_app_secret: str = ""
+    instagram_api_base: str = "https://graph.facebook.com"
 
     # S3-совместимое хранилище (MinIO/AWS S3, D-008)
     minio_endpoint: str = "minio:9000"
