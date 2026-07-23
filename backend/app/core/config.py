@@ -32,7 +32,15 @@ class Settings(BaseSettings):
     # Список через запятую; задаётся окружением для staging/production.
     cors_allow_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 
-    # Объектное хранилище MinIO (D-008)
+    # Файловое хранилище. Бэкенд выбирается окружением:
+    #   local — локальная файловая система (разработка/тесты, реально пишет байты);
+    #   s3    — S3-совместимое (MinIO/AWS S3) для staging/production.
+    # Ключи S3 задаются только через окружение/secret manager, не в Git.
+    storage_backend: str = "local"  # local | s3
+    # Каталог локального хранилища. По умолчанию — вне репозитория (системный temp),
+    # чтобы разработка/тесты не засоряли рабочее дерево; в production задаётся явно.
+    local_storage_dir: str | None = None
+    # S3-совместимое хранилище (MinIO/AWS S3, D-008)
     minio_endpoint: str = "minio:9000"
     minio_access_key: str = "change-me"
     minio_secret_key: str = "change-me"

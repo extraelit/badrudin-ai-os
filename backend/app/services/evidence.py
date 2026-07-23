@@ -190,9 +190,31 @@ def missing_required(session: Session, process: WorkflowProcess) -> list[str]:
                 ProcessEvidence.evidence_type == r.evidence_type,
             )
         ) or 0
+        # Универсальные вложения к процессу тоже засчитываются гейтом: реальный
+        # приложенный файл нужного типа (актуальный, не архивный) закрывает
+        # требование (PR-1: Evidence Gate учитывает реальные вложения).
+        count += _attachment_count(session, process.id, r.evidence_type)
         if count < r.min_count:
             missing.append(r.evidence_type)
     return missing
+
+
+def _attachment_count(
+    session: Session, process_id: uuid.UUID, evidence_type: str
+) -> int:
+    """Число актуальных (не архивных) вложений процесса указанного типа."""
+    from app.models import Attachment  # локальный импорт: избегаем цикла
+
+    return session.scalar(
+        select(func.count(Attachment.id)).where(
+            Attachment.entity_type == "workflow_process",
+            Attachment.entity_id == process_id,
+            Attachment.attachment_type == evidence_type,
+            Attachment.is_archived.is_(False),
+            Attachment.is_current.is_(True),
+            Attachment.deleted_at.is_(None),
+        )
+    ) or 0
 
 
 def assert_gate_satisfied(session: Session, process: WorkflowProcess) -> None:

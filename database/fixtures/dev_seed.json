@@ -107,7 +107,9 @@
     { "code": "accountable.account" },
     { "code": "normative.view" },
     { "code": "normative.manage" },
-    { "code": "normative.confirm" }
+    { "code": "normative.confirm" },
+    { "code": "attachment.view" },
+    { "code": "attachment.manage" }
   ],
   "departments": [
     { "ref": "dep_management", "name": "Управление", "code": "MGMT" },
@@ -158,7 +160,7 @@
       "procurement.view", "procurement.approve",
       "accountable.view", "accountable.approve",
       "smm.view", "smm.approve", "integration.view", "integration.approve",
-      "normative.view"
+      "normative.view", "attachment.view", "attachment.manage"
     ],
     "executive_director": [
       "management.view", "project.view", "project.create", "project.manage", "site.manage",
@@ -175,7 +177,7 @@
       "accountable.view", "accountable.manage", "accountable.approve",
       "integration.view", "integration.manage", "smm.view", "smm.manage",
       "crm.view", "crm.manage", "deal.approve", "notification.manage",
-      "normative.view"
+      "normative.view", "attachment.view", "attachment.manage"
     ],
     "production_director": [
       "project.view", "project.create", "project.manage", "site.manage",
@@ -194,7 +196,7 @@
       "pto.view", "pto.manage", "pto.approve", "notification.manage",
       "equipment.view", "equipment.manage", "equipment.maintain",
       "accountable.view", "accountable.manage", "accountable.approve",
-      "normative.view"
+      "normative.view", "attachment.view", "attachment.manage"
     ],
     "chief_engineer": [
       "management.view", "project.view", "project.manage", "site.manage",
@@ -206,7 +208,7 @@
       "equipment.view", "equipment.manage", "equipment.maintain", "warehouse.view",
       "procurement.view", "procurement.manage", "kpi.view",
       "audit.finding.view", "audit.finding.manage", "audit.finding.resolve",
-      "normative.view", "normative.manage", "normative.confirm"
+      "normative.view", "normative.manage", "normative.confirm", "attachment.view", "attachment.manage"
     ],
     "project_manager": [
       "management.view", "project.view", "project.manage", "site.manage",
@@ -216,81 +218,81 @@
       "risk.view", "risk.manage", "daily_report.view", "daily_report.manage", "daily_report.approve",
       "equipment.view", "warehouse.view", "kpi.view", "crm.view",
       "accountable.view", "accountable.manage", "notification.manage",
-      "normative.view"
+      "normative.view", "attachment.view", "attachment.manage"
     ],
     "site_manager": [
       "project.view", "site.manage", "task.view", "task.create", "task.assign", "task.execute",
       "approval.view", "daily_report.view", "daily_report.manage",
       "procurement.view", "procurement.manage", "warehouse.view",
-      "equipment.view", "equipment.manage", "accountable.view", "accountable.manage", "pto.view"
+      "equipment.view", "equipment.manage", "accountable.view", "accountable.manage", "pto.view", "attachment.view", "attachment.manage"
     ],
     "foreman": [
       "project.view", "site.manage", "task.view", "task.execute",
       "daily_report.view", "daily_report.manage",
       "procurement.view", "procurement.manage", "warehouse.view",
       "equipment.view", "equipment.manage",
-      "accountable.view", "accountable.manage"
+      "accountable.view", "accountable.manage", "attachment.view", "attachment.manage"
     ],
     "master": [
       "project.view", "site.manage", "task.view", "task.execute",
-      "daily_report.view", "daily_report.manage", "warehouse.view", "equipment.view"
+      "daily_report.view", "daily_report.manage", "warehouse.view", "equipment.view", "attachment.view", "attachment.manage"
     ],
     "pto_engineer": [
       "project.view", "pto.view", "pto.manage", "estimate.view", "estimate.manage",
       "design.view", "design.manage", "task.view", "daily_report.view", "kpi.view",
       "procurement.view", "warehouse.view",
-      "normative.view", "normative.manage"
+      "normative.view", "normative.manage", "attachment.view", "attachment.manage"
     ],
     "construction_control_engineer": [
       "project.view", "task.view", "daily_report.view", "daily_report.approve",
       "audit.finding.view", "audit.finding.manage", "audit.finding.resolve",
       "risk.view", "risk.manage", "safety.manage", "equipment.view", "pto.view",
-      "design.issue.manage"
+      "design.issue.manage", "attachment.view", "attachment.manage"
     ],
     "hse_specialist": [
       "project.view", "safety.manage", "task.view", "daily_report.view",
       "audit.finding.view", "audit.finding.manage", "audit.finding.resolve",
-      "risk.view", "risk.manage", "equipment.view"
+      "risk.view", "risk.manage", "equipment.view", "attachment.view", "attachment.manage"
     ],
     "supply": [
       "project.view", "procurement.view", "procurement.manage", "supplier.view",
       "warehouse.view", "warehouse.manage", "estimate.view", "equipment.view",
-      "budget.view", "payment.request"
+      "budget.view", "payment.request", "attachment.view", "attachment.manage"
     ],
     "storekeeper": [
       "project.view", "warehouse.view", "warehouse.manage", "procurement.view",
-      "equipment.view", "daily_report.view"
+      "equipment.view", "daily_report.view", "attachment.view", "attachment.manage"
     ],
     "mechanic": [
       "project.view", "equipment.view", "equipment.manage", "equipment.maintain",
-      "warehouse.view", "task.view", "task.execute", "daily_report.view"
+      "warehouse.view", "task.view", "task.execute", "daily_report.view", "attachment.view", "attachment.manage"
     ],
     "accountant": [
       "project.view", "finance.view", "budget.view", "payroll.view", "audit.view",
       "invoice.manage", "payment.request", "estimate.view",
-      "accountable.view", "accountable.account"
+      "accountable.view", "accountable.account", "attachment.view", "attachment.manage"
     ],
     "lawyer": [
       "project.view", "crm.view", "crm.contact.pii", "supplier.view",
       "audit.view", "risk.view", "pto.view", "design.view",
-      "normative.view", "normative.confirm"
+      "normative.view", "normative.confirm", "attachment.view", "attachment.manage"
     ],
     "hr_specialist": [
-      "project.view", "personnel.view", "personnel.manage", "payroll.view", "kpi.view"
+      "project.view", "personnel.view", "personnel.manage", "payroll.view", "kpi.view", "attachment.view", "attachment.manage"
     ],
     "clerk": [
       "project.view", "inbox.view", "inbox.manage", "notification.manage",
-      "pto.view", "daily_report.view"
+      "pto.view", "daily_report.view", "attachment.view", "attachment.manage"
     ],
     "executor": [
       "project.view", "task.view", "task.execute",
-      "daily_report.view", "daily_report.manage", "warehouse.view"
+      "daily_report.view", "daily_report.manage", "warehouse.view", "attachment.view", "attachment.manage"
     ],
     "external_contractor": [
-      "project.view", "task.view", "task.execute", "daily_report.view"
+      "project.view", "task.view", "task.execute", "daily_report.view", "attachment.view", "attachment.manage"
     ],
     "viewer": [
-      "project.view", "task.view", "approval.view", "daily_report.view"
+      "project.view", "task.view", "approval.view", "daily_report.view", "attachment.view", "attachment.manage"
     ]
   },
   "employees": [
